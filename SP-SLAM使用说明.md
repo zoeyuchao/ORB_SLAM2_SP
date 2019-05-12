@@ -1,4 +1,30 @@
 # SP-SLAM使用说明
+
+## 1. 安装
+
+跟LF-SLAM一样，请移步。
+
+## 2. 使用
+
+- 下载数据集，[链接](链接：https://pan.baidu.com/s/1TIuS7voxUUHdXP6Jv8X8jA 
+  )（提取码：2vfm ）
+
+在***~/catkin_ws/src/ORB_SLAM2_SP***路径下运行下列语句:
+
+[^]: 注意:运行前要先运行SP,将特征提前提取完毕(这一步已经做完,暂时不需要再运行),存储在/home/zoe/data/rgbd_dataset_freiburg1_room/SP文件里,如果改动了SP-SLAM的代码,先在build下进行编译.
+
+```bash
+./Examples/RGB-D/rgbd_tum Vocabulary/LFNET500voc.txt Examples/RGB-D/TUM1.yaml /home/yuchao/Data/rgbd_dataset_freiburg1_room /home/yuchao/Data/rgbd_dataset_freiburg1_room/associate.txt
+```
+
+特别注意：
+
+- 由于一些特殊要求，所以需要检查以下设置
+
+  1.loopclosing文件里面的correctloop函数有没有打开
+
+## 3. 说明
+
 1. 本程序基于ORB-SLAM2框架,将ORB特征全面替换为SuperPoint特征,文中所有改动均已加了注释//zoe time,可以全文搜索zoe,寻找改动的地方。
 2. 由于SP和ORB特征不尽相同,所以level这个信息目前是全面屏蔽的.之后再进行改进。
 3. SP的角度是在SLAM程序中算出来的，跟LF是有区别的，也是这版代码的一个改进。
@@ -8,17 +34,11 @@
       1. LFNET500voc.txt表示500个特征点,平方差.
       2. LFNET500sqrtvoc.txt表示500个特征点,sqrt(平方差).
       3. LFNET1000voc.txt表示1000个特征点,平方差.
-7. **运行命令**
-   在***~/catkin_ws/src/ORB_SLAM2_SP***路径下运行下列语句:
-[^]: 注意:运行前要先运行SP,将特征提前提取完毕(这一步已经做完,暂时不需要再运行),存储在/home/zoe/data/rgbd_dataset_freiburg1_room/SP文件里,如果改动了SP-SLAM的代码,先在build下进行编译.
-```bash
-./Examples/RGB-D/rgbd_tum Vocabulary/LFNET500voc.txt Examples/RGB-D/TUM1.yaml /home/yuchao/Data/rgbd_dataset_freiburg1_room /home/yuchao/Data/rgbd_dataset_freiburg1_room/associate.txt
-```
-7. 精度评价
-     在eval_script文件夹下,有2个sh脚本,直接运行即可,每次运行完会存在png和txt下，我都是拷贝出来的。他们的作用分别是;
-         1. LFNET_Evaluate.sh:进行LF-SLAM的性能分析
-         2. ORB_Evaluate.sh:进行ORB-SLAM2的性能分析
-         3. SP_Evaluate.sh:进行SP-SLAM的性能分析
+7. **精度评价**
+   在eval_script文件夹下,有2个sh脚本,直接运行即可,每次运行完会存在png和txt下，我都是拷贝出来的。他们的作用分别是;
+       1. LFNET_Evaluate.sh:进行LF-SLAM的性能分析
+           2. ORB_Evaluate.sh:进行ORB-SLAM2的性能分析
+           3. SP_Evaluate.sh:进行SP-SLAM的性能分析
 [^]: 运行脚本前请看脚本里的备注,注意路径/数据集名称是否需要修改,如果在此电脑运行,则不需要更改.
 ​	现在存了LFNET500和LFNET1000以及ORB SP四个文件夹,里面有对应的性能分析文件,供参考.
 

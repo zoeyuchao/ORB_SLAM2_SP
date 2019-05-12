@@ -3212,13 +3212,20 @@ int ORBmatcher::DescriptorDistance(const cv::Mat &a, const cv::Mat &b)
 float ORBmatcher::DescriptorDistanceLFNet_float(const std::vector<float> &a, const std::vector<float> &b)
 {
     float dist = 0.;
+    //float temp = 0;
+    //for(int i = 0; i < 256; i ++)
+    //{   
+    //    temp += a[i] * a[i];
+    //}
+    //cout << temp << endl;
     for(int i = 0; i < 256; i += 4)
-    {
+    {   
         dist += (a[i  ] - b[i  ])*(a[i  ] - b[i  ]);
         dist += (a[i+1] - b[i+1])*(a[i+1] - b[i+1]);
         dist += (a[i+2] - b[i+2])*(a[i+2] - b[i+2]);
         dist += (a[i+3] - b[i+3])*(a[i+3] - b[i+3]);
     }
+    
     //dist = sqrt(dist);
     if(dist>4)
     {

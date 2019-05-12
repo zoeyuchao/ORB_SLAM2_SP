@@ -166,6 +166,9 @@ private:
     // Reset flag
     std::mutex mMutexReset;
     bool mbReset;
+    //zoe 20190511
+    bool mbUseLocalMap;
+    bool mbUseLoop;
 
     // Change mode flags
     std::mutex mMutexMode;

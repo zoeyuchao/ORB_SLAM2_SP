@@ -225,7 +225,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     //ExtractORB(0,imGray);
     //cout << "ORB feats : " << mDescriptors << endl;
     
-    string strLFNetPath = "/home/yuchao/Data/rgbd_dataset_freiburg1_room/LFNet_DBOW/";
+    string strLFNetPath = "/home/yuchao/Data/rgbd_dataset_freiburg1_room/SP/";
     int kpts_num = 1000;//超参数,可以根据情况修改 每张照片提取特征点的个数 1000个,目前是跟ORB本身的个数是一样的.
     mnScaleLevels = 5; //超参数
     float Scale[mnScaleLevels] = {1.41421356, 1.18920712, 1.0, 0.84089642, 0.70710678};
@@ -290,6 +290,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 		for (int j = 0; j < 2; j++)//定义列循环
 		{
 			kptsfile >> fkpts[i][j];//读取一个值（空格、制表符、换行隔开）就写入到矩阵中，行列不断循环进行
+            //std::cout<< fkpts[i][j] << std::endl;
         }
         mvKpts[i].pt.x = fkpts[i][0];
         mvKpts[i].pt.y = fkpts[i][1];
@@ -308,10 +309,10 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
         for (int j = 0; j < 256; j++)//定义列循环
 		{
 			featsfile >> ffeats[i][j];//读取一个值（空格、制表符、换行隔开）就写入到矩阵中，行列不断循环进行
-            if(ffeats[i][j] < -0.3)
-                dspt[j] = -0.3;//0
-            else if(ffeats[i][j] > 0.3)
-                dspt[j] = 0.3;//255
+            if(ffeats[i][j] < -0.5)
+                dspt[j] = -0.5;//0
+            else if(ffeats[i][j] > 0.5)
+                dspt[j] = 0.5;//255
             else
                 dspt[j] = ffeats[i][j];
             

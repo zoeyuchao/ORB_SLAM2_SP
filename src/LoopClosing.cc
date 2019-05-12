@@ -81,7 +81,7 @@ void LoopClosing::Run()
                if(ComputeSim3())
                {
                    // Perform loop fusion and pose graph optimization
-                   CorrectLoop();
+                   CorrectLoop(); 
                }
             }
         }       
@@ -424,7 +424,10 @@ void LoopClosing::CorrectLoop()
 
     // Send a stop signal to Local Mapping
     // Avoid new keyframes are inserted while correcting the loop
-    mpLocalMapper->RequestStop();
+    if (mpLocalMapper)
+    {
+        mpLocalMapper->RequestStop();
+    }
 
     // If a Global Bundle Adjustment is running, abort it
     if(isRunningGBA())
@@ -442,9 +445,12 @@ void LoopClosing::CorrectLoop()
     }
 
     // Wait until Local Mapping has effectively stopped
-    while(!mpLocalMapper->isStopped())
+    if (mpLocalMapper)
     {
-        usleep(1000);
+        while(!mpLocalMapper->isStopped())
+        {
+            usleep(1000);
+        }
     }
 
     // Ensure current keyframe is updated
@@ -599,7 +605,8 @@ void LoopClosing::CorrectLoop()
     mpThreadGBA = new thread(&LoopClosing::RunGlobalBundleAdjustment,this,mpCurrentKF->mnId);
 
     // Loop closed. Release Local Mapping.
-    mpLocalMapper->Release();    
+    if (mpLocalMapper)
+        mpLocalMapper->Release();    
 
     mLastLoopKFid = mpCurrentKF->mnId;   
 }
@@ -685,12 +692,15 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
         {
             cout << "Global Bundle Adjustment finished" << endl;
             cout << "Updating map ..." << endl;
-            mpLocalMapper->RequestStop();
-            // Wait until Local Mapping has effectively stopped
-
-            while(!mpLocalMapper->isStopped() && !mpLocalMapper->isFinished())
+            if (mpLocalMapper)
             {
-                usleep(1000);
+                mpLocalMapper->RequestStop();
+                // Wait until Local Mapping has effectively stopped
+
+                while(!mpLocalMapper->isStopped() && !mpLocalMapper->isFinished())
+                {
+                    usleep(1000);
+                }
             }
 
             // Get Map Mutex
@@ -761,7 +771,8 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
             mpMap->InformNewBigChange();
 
-            mpLocalMapper->Release();
+            if (mpLocalMapper)
+                mpLocalMapper->Release();
 
             cout << "Map updated!" << endl;
         }

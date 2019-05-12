@@ -1,1 +1,0 @@
-translational_error.rmse 0.071807 translational_error.mean 0.053715 translational_error.median 0.039762 translational_error.std 0.047654 rotational_error.rmse 2.685935 rotational_error.mean 2.194571 rotational_error.median 1.706462 rotational_error.std 1.548582 

@@ -101,7 +101,7 @@ protected:
 
     Map* mpMap;
 
-    LoopClosing* mpLoopCloser;
+    LoopClosing* mpLoopCloser = static_cast<LoopClosing*>(NULL);
     Tracking* mpTracker;
 
     std::list<KeyFrame*> mlNewKeyFrames;

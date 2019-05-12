@@ -51,6 +51,7 @@ void LocalMapping::Run()
 
     while(1)
     {
+        
         // Tracking will see that Local Mapping is busy
         SetAcceptKeyFrames(false);
 
@@ -59,13 +60,13 @@ void LocalMapping::Run()
         {
             // BoW conversion and insertion in Map
             ProcessNewKeyFrame();
-
+            /*
             // Check recent MapPoints
             MapPointCulling();
-
+            
             // Triangulate new MapPoints
             CreateNewMapPoints();
-
+            
             if(!CheckNewKeyFrames())
             {
                 // Find more matches in neighbor keyframes and fuse point duplications
@@ -78,13 +79,17 @@ void LocalMapping::Run()
             {
                 // Local BA
                 if(mpMap->KeyFramesInMap()>2)
-                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap);
+                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap); //zoe 20190511
 
-                // Check redundant local Keyframes
-                KeyFrameCulling();
+                 //Check redundant local Keyframes
+                 KeyFrameCulling(); //zoe 20190511
             }
-
-            mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);           
+            if (mpLoopCloser)
+            {
+                mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);   
+            }
+            */
+                   
         }
         else if(Stop())
         {
@@ -101,7 +106,7 @@ void LocalMapping::Run()
         
         // Tracking will see that Local Mapping is busy
         SetAcceptKeyFrames(true);
-       
+        
         if(CheckFinish())
             break;
         

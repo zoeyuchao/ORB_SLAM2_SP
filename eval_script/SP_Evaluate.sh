@@ -12,7 +12,7 @@ for i in $(seq $Num)
 do
 echo "start test"
 /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Examples/RGB-D/rgbd_tum $slamArg
-python evaluate_rpe.py $Dataset/groundtruth.txt /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/CameraTrajectory.txt --fixed_delta --plot png/${ImgPrefix}_RPE_SP_${i}.png --verbose
-python evaluate_ate.py $Dataset/groundtruth.txt /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/CameraTrajectory.txt --plot png/${ImgPrefix}_ATE_SP_${i}.png --verbose
+python evaluate_rpe.py $Dataset/groundtruth.txt /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/eval_script/CameraTrajectory.txt --fixed_delta --plot png/${ImgPrefix}_RPE_SP_${i}.png --verbose
+python evaluate_ate.py $Dataset/groundtruth.txt /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/eval_script/CameraTrajectory.txt --plot png/${ImgPrefix}_ATE_SP_${i}.png --verbose
 done
 
