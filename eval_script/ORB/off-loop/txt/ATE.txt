@@ -1,0 +1,1 @@
+absolute_translational_error.rmse 0.090548 mabsolute_translational_error.mean 0.087348 mabsolute_translational_error.median 0.084906 mabsolute_translational_error.std 0.023860 m

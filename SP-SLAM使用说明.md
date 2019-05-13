@@ -19,7 +19,7 @@
 
 特别注意：
 
-- rgb-d tum文件里有4个true或者false的选项需要在编译之前修改，分别控制的是viewer，localmap，loop和trackonly这4种模式（20190513 代码中改动的地方搜索zoe 20190513能找到）
+- rgb-d tum文件里有4个true或者false的选项需要在编译之前修改，分别控制的是viewer，localmap，loop和trackonly这4种模式（代码中改动的地方搜索zoe 20190513能找到）
 
 ## 3. 说明
 
@@ -40,3 +40,6 @@
 [^]: 运行脚本前请看脚本里的备注,注意路径/数据集名称是否需要修改,如果在此电脑运行,则不需要更改.
 ​	现在存了LFNET500和LFNET1000以及ORB SP四个文件夹,里面有对应的性能分析文件,供参考.
 
+## 4.实验结果
+
+- 20190513 把线程分离开，但是词袋模型没有删掉，实验结果[ORB链接](https://pan.baidu.com/s/1aWpuZQJuJV48nLr0-Jrx3g)(提取码：s556)    [SP链接](https://pan.baidu.com/s/1VkUAtfK-Mgn7d-30dLA6UQ)(提取码：mbwy)
