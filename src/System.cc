@@ -28,10 +28,10 @@
 
 namespace ORB_SLAM2
 {
-//zoe 20190512
+//zoe 20190513
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
-        mbDeactivateLocalizationMode(false), mbUseLocalMap(true), mbUseLoop(false)
+               const bool bUseViewer, const bool bUseLocalMap, const bool bUseLoop, const bool bOnlyTracking):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+        mbDeactivateLocalizationMode(false), mbUseLocalMap(bUseLocalMap), mbUseLoop(bUseLoop),mbOnlyTracking(bOnlyTracking)
 {
     // Output welcome message
     cout << endl <<
@@ -59,6 +59,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     // turn off the loop or not //zoe 20190511 
     cout << "Loop Mapping is set: " << mbUseLocalMap << endl;
     cout << "Loop Closing is set: " << mbUseLoop << endl;
+    cout << "Only Track is set: " << mbOnlyTracking << endl;
 
     //Load Vocabulary
     cout << endl << "Loading Vocabulary. This could take a while..." << endl;
@@ -88,7 +89,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //(it will live in the main thread of execution, the one that called this constructor)
     //zoe 20181016 track名字没改
     mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer,
-                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor);
+                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor, bOnlyTracking); //zoe 20190513 增加tracking参数
 
     //Initialize the Local Mapping thread and launch
     if (mbUseLocalMap)
@@ -109,7 +110,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Viewer thread and launch
     if(bUseViewer)
     {
-        mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
+        mpViewer = new Viewer(this, mpFrameDrawer, mpMapDrawer, mpTracker, strSettingsFile, bOnlyTracking);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
     }
@@ -129,6 +130,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpLocalMapper->SetLoopCloser(mpLoopCloser);
         mpLoopCloser->SetTracker(mpTracker);
         mpLoopCloser->SetLocalMapper(mpLocalMapper);
+
     }
 }
 

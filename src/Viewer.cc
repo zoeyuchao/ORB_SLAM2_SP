@@ -26,8 +26,8 @@
 namespace ORB_SLAM2
 {
 
-Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath):
-    mpSystem(pSystem), mpFrameDrawer(pFrameDrawer),mpMapDrawer(pMapDrawer), mpTracker(pTracking),
+Viewer::Viewer(System* pSystem, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Tracking *pTracking, const string &strSettingPath, const bool bOnlyTracking):
+    mpSystem(pSystem), mpFrameDrawer(pFrameDrawer),mpMapDrawer(pMapDrawer), mpTracker(pTracking), mbOnlyTracking(bOnlyTracking),//zoe 20190513
     mbFinishRequested(false), mbFinished(true), mbStopped(true), mbStopRequested(false)
 {
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
@@ -71,6 +71,14 @@ void Viewer::Run()
     pangolin::Var<bool> menuShowKeyFrames("menu.Show KeyFrames",true,true);
     pangolin::Var<bool> menuShowGraph("menu.Show Graph",true,true);
     pangolin::Var<bool> menuLocalizationMode("menu.Localization Mode",false,true);
+    bool bLocalizationMode = false;
+    //zoe 20190513 增加可视化线程对后端优化模块初始化开关的支持
+    if (mbOnlyTracking)
+    {
+        menuLocalizationMode = true;
+        bLocalizationMode = true;
+    }
+     
     pangolin::Var<bool> menuReset("menu.Reset",false,false);
 
     // Define Camera Render Object (for view / scene browsing)
@@ -90,11 +98,9 @@ void Viewer::Run()
     cv::namedWindow("ORB-SLAM2: Current Frame");
 
     bool bFollow = true;
-    bool bLocalizationMode = false;
 
     while(1)
-    {
-        
+    {        
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         mpMapDrawer->GetCurrentOpenGLCameraMatrix(Twc);
@@ -113,7 +119,7 @@ void Viewer::Run()
         {
             bFollow = false;
         }
-        
+
         if(menuLocalizationMode && !bLocalizationMode)
         {
             mpSystem->ActivateLocalizationMode();
@@ -144,10 +150,18 @@ void Viewer::Run()
             menuShowGraph = true;
             menuShowKeyFrames = true;
             menuShowPoints = true;
-            menuLocalizationMode = false;
-            if(bLocalizationMode)
+            //zoe 20190513 逻辑重新理了一下 
+            if (mbOnlyTracking)
+                menuLocalizationMode = true;
+            else
+                menuLocalizationMode = false;
+            //zoe 20190513 逻辑重新理了一下          
+            if(!menuLocalizationMode && bLocalizationMode)
+            {
                 mpSystem->DeactivateLocalizationMode();
-            bLocalizationMode = false;
+                bLocalizationMode = false;
+            }
+            
             bFollow = true;
             menuFollowCamera = true;
             mpSystem->Reset();

@@ -19,9 +19,7 @@
 
 特别注意：
 
-- 由于一些特殊要求，所以需要检查以下设置
-
-  1.loopclosing文件里面的correctloop函数有没有打开
+- rgb-d tum文件里有4个true或者false的选项需要在编译之前修改，分别控制的是viewer，localmap，loop和trackonly这4种模式（20190513 代码中改动的地方搜索zoe 20190513能找到）
 
 ## 3. 说明
 

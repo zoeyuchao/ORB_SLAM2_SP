@@ -51,16 +51,16 @@ void LocalMapping::Run()
 
     while(1)
     {
-        
         // Tracking will see that Local Mapping is busy
         SetAcceptKeyFrames(false);
-
+        
         // Check if there are keyframes in the queue
         if(CheckNewKeyFrames())
-        {
+        {        
+            
             // BoW conversion and insertion in Map
             ProcessNewKeyFrame();
-            /*
+            
             // Check recent MapPoints
             MapPointCulling();
             
@@ -79,17 +79,15 @@ void LocalMapping::Run()
             {
                 // Local BA
                 if(mpMap->KeyFramesInMap()>2)
-                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap); //zoe 20190511
+                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA, mpMap); 
 
                  //Check redundant local Keyframes
-                 KeyFrameCulling(); //zoe 20190511
+                 KeyFrameCulling(); 
             }
             if (mpLoopCloser)
             {
                 mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);   
-            }
-            */
-                   
+            }                  
         }
         else if(Stop())
         {
@@ -140,11 +138,12 @@ void LocalMapping::ProcessNewKeyFrame()
 
     // Compute Bags of Words structures
     //mpCurrentKeyFrame->ComputeBoW();//zoe 20182016
+    
     mpCurrentKeyFrame->ComputeBoWLFNet();
-
+    
     // Associate MapPoints to the new keyframe and update normal and descriptor
     const vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
-
+    
     for(size_t i=0; i<vpMapPointMatches.size(); i++)
     {
         MapPoint* pMP = vpMapPointMatches[i];
@@ -166,12 +165,13 @@ void LocalMapping::ProcessNewKeyFrame()
             }
         }
     }    
-
+    
     // Update links in the Covisibility Graph
     mpCurrentKeyFrame->UpdateConnections();
 
     // Insert Keyframe in Map
     mpMap->AddKeyFrame(mpCurrentKeyFrame);
+    
 }
 
 void LocalMapping::MapPointCulling()
