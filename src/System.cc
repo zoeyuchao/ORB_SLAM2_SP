@@ -89,7 +89,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //(it will live in the main thread of execution, the one that called this constructor)
     //zoe 20181016 track名字没改
     mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer,
-                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor, bOnlyTracking); //zoe 20190513 增加tracking参数
+                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190513 增加tracking参数
 
     //Initialize the Local Mapping thread and launch
     if (mbUseLocalMap)
@@ -110,7 +110,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Initialize the Viewer thread and launch
     if(bUseViewer)
     {
-        mpViewer = new Viewer(this, mpFrameDrawer, mpMapDrawer, mpTracker, strSettingsFile, bOnlyTracking);
+        mpViewer = new Viewer(this, mpFrameDrawer, mpMapDrawer, mpTracker, strSettingsFile, mbOnlyTracking);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
     }
