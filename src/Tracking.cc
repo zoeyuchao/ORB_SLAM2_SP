@@ -21,21 +21,21 @@
 
 #include "Tracking.h"
 
-#include<opencv2/core/core.hpp>
-#include<opencv2/features2d/features2d.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
 
-#include"ORBmatcher.h"
-#include"FrameDrawer.h"
-#include"Converter.h"
-#include"Map.h"
-#include"Initializer.h"
+#include "ORBmatcher.h"
+#include "FrameDrawer.h"
+#include "Converter.h"
+#include "Map.h"
+#include "Initializer.h"
 
-#include"Optimizer.h"
-#include"PnPsolver.h"
+#include "Optimizer.h"
+#include "PnPsolver.h"
 
-#include<iostream>
+#include <iostream>
 
-#include<mutex>
+#include <mutex>
 
 
 using namespace std;
@@ -252,6 +252,110 @@ Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrame
     }
 
 }
+// zoe 20190520
+Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),
+    mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0) //zoe 20190513 tracking参数赋值修改
+{
+    // Load camera parameters from settings file
+    cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+    float fx = fSettings["Camera.fx"];
+    float fy = fSettings["Camera.fy"];
+    float cx = fSettings["Camera.cx"];
+    float cy = fSettings["Camera.cy"];
+
+    cv::Mat K = cv::Mat::eye(3,3,CV_32F);
+    K.at<float>(0,0) = fx;
+    K.at<float>(1,1) = fy;
+    K.at<float>(0,2) = cx;
+    K.at<float>(1,2) = cy;
+    K.copyTo(mK);
+
+    cv::Mat DistCoef(4,1,CV_32F);
+    DistCoef.at<float>(0) = fSettings["Camera.k1"];
+    DistCoef.at<float>(1) = fSettings["Camera.k2"];
+    DistCoef.at<float>(2) = fSettings["Camera.p1"];
+    DistCoef.at<float>(3) = fSettings["Camera.p2"];
+    const float k3 = fSettings["Camera.k3"];
+    if(k3!=0)
+    {
+        DistCoef.resize(5);
+        DistCoef.at<float>(4) = k3;
+    }
+    DistCoef.copyTo(mDistCoef);
+
+    mbf = fSettings["Camera.bf"];
+
+    float fps = fSettings["Camera.fps"];
+    if(fps==0)
+        fps=30;
+
+    // Max/Min Frames to insert keyframes and to check relocalisation
+    mMinFrames = 0;
+    mMaxFrames = fps;
+
+    cout << endl << "Camera Parameters: " << endl;
+    cout << "- fx: " << fx << endl;
+    cout << "- fy: " << fy << endl;
+    cout << "- cx: " << cx << endl;
+    cout << "- cy: " << cy << endl;
+    cout << "- k1: " << DistCoef.at<float>(0) << endl;
+    cout << "- k2: " << DistCoef.at<float>(1) << endl;
+    if(DistCoef.rows==5)
+        cout << "- k3: " << DistCoef.at<float>(4) << endl;
+    cout << "- p1: " << DistCoef.at<float>(2) << endl;
+    cout << "- p2: " << DistCoef.at<float>(3) << endl;
+    cout << "- fps: " << fps << endl;
+
+
+    int nRGB = fSettings["Camera.RGB"];
+    mbRGB = nRGB;
+
+    if(mbRGB)
+        cout << "- color order: RGB (ignored if grayscale)" << endl;
+    else
+        cout << "- color order: BGR (ignored if grayscale)" << endl;
+
+    // Load ORB parameters
+    /*
+    int nFeatures = fSettings["ORBextractor.nFeatures"];
+    float fScaleFactor = fSettings["ORBextractor.scaleFactor"];
+    int nLevels = fSettings["ORBextractor.nLevels"];
+    int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
+    int fMinThFAST = fSettings["ORBextractor.minThFAST"];
+    //zoe 20181019
+    mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+    if(sensor==System::STEREO)
+        mpORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+    if(sensor==System::MONOCULAR)
+        mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+    cout << endl  << "ORB Extractor Parameters: " << endl;
+    cout << "- Number of Features: " << nFeatures << endl;
+    cout << "- Scale Levels: " << nLevels << endl;
+    cout << "- Scale Factor: " << fScaleFactor << endl;
+    cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
+    cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
+    */
+    if(sensor==System::STEREO || sensor==System::RGBD)
+    {
+        mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
+        cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
+    }
+
+    if(sensor==System::RGBD)
+    {
+        mDepthMapFactor = fSettings["DepthMapFactor"];
+        if(fabs(mDepthMapFactor)<1e-5)
+            mDepthMapFactor=1;
+        else
+            mDepthMapFactor = 1.0f/mDepthMapFactor;
+    }
+
+}
 
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
 {
@@ -308,7 +412,6 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
     return mCurrentFrame.mTcw.clone();
 }
 
-
 cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp)
 {
     mImGray = imRGB;
@@ -334,8 +437,10 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 
     //mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);// zoe mark
     //zoe 20181016
-    
-    mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpLFNETVocabulary,mK,mDistCoef,mbf,mThDepth);
+    if (mpLFNETVocabulary)
+        mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpLFNETVocabulary, mK, mDistCoef, mbf, mThDepth);
+    else
+        mCurrentFrame = Frame(mImGray, imDepth, timestamp, mK, mDistCoef, mbf, mThDepth);
     
     Track();
     
@@ -638,7 +743,14 @@ void Tracking::StereoInitialization()
         mCurrentFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
 
         // Create KeyFrame
-        KeyFrame* pKFini = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+        KeyFrame* pKFini;
+        if (mpKeyFrameDB)
+            pKFini = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+        else
+        {
+            pKFini = new KeyFrame(mCurrentFrame,mpMap);
+        }
+        
 
         // Insert KeyFrame in the map
         mpMap->AddKeyFrame(pKFini);
@@ -670,8 +782,9 @@ void Tracking::StereoInitialization()
         if (mpLocalMapper)
             mpLocalMapper->InsertKeyFrame(pKFini);
         else
+        {
             pKFini->ComputeBoWLFNet();// zoe 20190513
-
+        }
         mLastFrame = Frame(mCurrentFrame);
         mnLastKeyFrameId=mCurrentFrame.mnId;
         mpLastKeyFrame = pKFini;
@@ -897,14 +1010,25 @@ bool Tracking::TrackReferenceKeyFrame()
 
     // We perform first an ORB matching with the reference keyframe
     // If enough matches are found we setup a PnP solver
+    
     ORBmatcher matcher(0.7,true);
     vector<MapPoint*> vpMapPointMatches;
 
     //int nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
-    int nmatches = matcher.SearchByBoWLFNet(mpReferenceKF,mCurrentFrame,vpMapPointMatches);//zoe 20181017
+    int nmatches = 0;
+    if (mpLFNETVocabulary)
+    {
+        nmatches = matcher.SearchByBoWLFNet(mpReferenceKF,mCurrentFrame,vpMapPointMatches);//zoe 20181017
+    }
+    else
+    {
+        nmatches = matcher.SearchByBFLFNet(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
+    }
+    
     
     if(nmatches<15)
         return false;
+
 
     mCurrentFrame.mvpMapPoints = vpMapPointMatches;
     mCurrentFrame.SetPose(mLastFrame.mTcw);
@@ -933,6 +1057,7 @@ bool Tracking::TrackReferenceKeyFrame()
     }
     
     return nmatchesMap>=10;
+    
 }
 
 void Tracking::UpdateLastFrame()
@@ -1125,7 +1250,7 @@ bool Tracking::NeedNewKeyFrame()
         if(mpLocalMapper->isStopped() || mpLocalMapper->stopRequested())
             return false;
     }
-
+    
     const int nKFs = mpMap->KeyFramesInMap();
 
     // Do not insert keyframes if not enough frames have passed from last relocalisation
@@ -1212,9 +1337,13 @@ void Tracking::CreateNewKeyFrame()
  
     if(mpLocalMapper && !mpLocalMapper->SetNotStop(true))
         return;
-
-    KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
-
+    
+    KeyFrame* pKF;
+    if (mpKeyFrameDB)
+        pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+    else
+        pKF = new KeyFrame(mCurrentFrame,mpMap);
+    
     mpReferenceKF = pKF;
     mCurrentFrame.mpReferenceKF = pKF;
 
@@ -1289,6 +1418,8 @@ void Tracking::CreateNewKeyFrame()
     else
     {
         pKF->ComputeBoWLFNet();//zoe 20190513
+        // Insert Keyframe in Map
+        mpMap->AddKeyFrame(pKF);   
     }
 
     mnLastKeyFrameId = mCurrentFrame.mnId;
@@ -1505,156 +1636,316 @@ bool Tracking::Relocalization()
 
     // Relocalization is performed when tracking is lost
     // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
-    vector<KeyFrame*> vpCandidateKFs = mpKeyFrameDB->DetectRelocalizationCandidates(&mCurrentFrame);
-
-    if(vpCandidateKFs.empty())
-    {
-        return false;
-    }
-
-    const int nKFs = vpCandidateKFs.size();
-
-    // We perform first an ORB matching with each candidate
-    // If enough matches are found we setup a PnP solver
-    ORBmatcher matcher(0.75,true);
-
-    vector<PnPsolver*> vpPnPsolvers;
-    vpPnPsolvers.resize(nKFs);
-
-    vector<vector<MapPoint*> > vvpMapPointMatches;
-    vvpMapPointMatches.resize(nKFs);
-
-    vector<bool> vbDiscarded;
-    vbDiscarded.resize(nKFs);
-
-    int nCandidates=0;
-
-    for(int i=0; i<nKFs; i++)
-    {
-        KeyFrame* pKF = vpCandidateKFs[i];
-        if(pKF->isBad())
-            vbDiscarded[i] = true;
-        else
-        {
-            //int nmatches = matcher.SearchByBoW(pKF,mCurrentFrame,vvpMapPointMatches[i]);//zoe 20181017
-            int nmatches = matcher.SearchByBoWLFNet(pKF,mCurrentFrame,vvpMapPointMatches[i]);
-            
-            if(nmatches<15)
-            {
-                vbDiscarded[i] = true;
-                continue;
-            }
-            else
-            {
-                PnPsolver* pSolver = new PnPsolver(mCurrentFrame,vvpMapPointMatches[i]);
-                pSolver->SetRansacParameters(0.99,10,300,4,0.5,5.991);
-                vpPnPsolvers[i] = pSolver;
-                nCandidates++;
-            }
-        }
-    }
-
-    // Alternatively perform some iterations of P4P RANSAC
-    // Until we found a camera pose supported by enough inliers
     bool bMatch = false;
-    ORBmatcher matcher2(0.9,true);
-
-    while(nCandidates>0 && !bMatch)
+    if (mpKeyFrameDB)
     {
+        vector<KeyFrame*> vpCandidateKFs = mpKeyFrameDB->DetectRelocalizationCandidates(&mCurrentFrame);
+
+        if(vpCandidateKFs.empty())
+        {
+            return false;
+        }
+    
+        const int nKFs = vpCandidateKFs.size();
+
+        // We perform first an ORB matching with each candidate
+        // If enough matches are found we setup a PnP solver
+        ORBmatcher matcher(0.75,true);
+
+        vector<PnPsolver*> vpPnPsolvers;
+        vpPnPsolvers.resize(nKFs);
+
+        vector<vector<MapPoint*> > vvpMapPointMatches;
+        vvpMapPointMatches.resize(nKFs);
+
+        vector<bool> vbDiscarded;
+        vbDiscarded.resize(nKFs);
+
+        int nCandidates=0;
+
         for(int i=0; i<nKFs; i++)
         {
-            if(vbDiscarded[i])
-                continue;
-
-            // Perform 5 Ransac Iterations
-            vector<bool> vbInliers;
-            int nInliers;
-            bool bNoMore;
-
-            PnPsolver* pSolver = vpPnPsolvers[i];
-            cv::Mat Tcw = pSolver->iterate(5,bNoMore,vbInliers,nInliers);
-
-            // If Ransac reachs max. iterations discard keyframe
-            if(bNoMore)
+            KeyFrame* pKF = vpCandidateKFs[i];
+            if(pKF->isBad())
+                vbDiscarded[i] = true;
+            else
             {
-                vbDiscarded[i]=true;
-                nCandidates--;
-            }
-
-            // If a Camera Pose is computed, optimize
-            if(!Tcw.empty())
-            {
-                Tcw.copyTo(mCurrentFrame.mTcw);
-
-                set<MapPoint*> sFound;
-
-                const int np = vbInliers.size();
-
-                for(int j=0; j<np; j++)
+                //int nmatches = matcher.SearchByBoW(pKF,mCurrentFrame,vvpMapPointMatches[i]);//zoe 20181017
+                int nmatches = matcher.SearchByBoWLFNet(pKF,mCurrentFrame,vvpMapPointMatches[i]);
+                
+                if(nmatches<15)
                 {
-                    if(vbInliers[j])
-                    {
-                        mCurrentFrame.mvpMapPoints[j]=vvpMapPointMatches[i][j];
-                        sFound.insert(vvpMapPointMatches[i][j]);
-                    }
-                    else
-                        mCurrentFrame.mvpMapPoints[j]=NULL;
+                    vbDiscarded[i] = true;
+                    continue;
                 }
+                else
+                {
+                    PnPsolver* pSolver = new PnPsolver(mCurrentFrame,vvpMapPointMatches[i]);
+                    pSolver->SetRansacParameters(0.99,10,300,4,0.5,5.991);
+                    vpPnPsolvers[i] = pSolver;
+                    nCandidates++;
+                }
+            }
+        }
+    
 
-                int nGood = Optimizer::PoseOptimization(&mCurrentFrame);
+        // Alternatively perform some iterations of P4P RANSAC
+        // Until we found a camera pose supported by enough inliers
+        
+        ORBmatcher matcher2(0.9,true);
 
-                if(nGood<10)
+        while(nCandidates>0 && !bMatch)
+        {
+            for(int i=0; i<nKFs; i++)
+            {
+                if(vbDiscarded[i])
                     continue;
 
-                for(int io =0; io<mCurrentFrame.N; io++)
-                    if(mCurrentFrame.mvbOutlier[io])
-                        mCurrentFrame.mvpMapPoints[io]=static_cast<MapPoint*>(NULL);
+                // Perform 5 Ransac Iterations
+                vector<bool> vbInliers;
+                int nInliers;
+                bool bNoMore;
 
-                // If few inliers, search by projection in a coarse window and optimize again
-                if(nGood<50)
+                PnPsolver* pSolver = vpPnPsolvers[i];
+                cv::Mat Tcw = pSolver->iterate(5,bNoMore,vbInliers,nInliers);
+
+                // If Ransac reachs max. iterations discard keyframe
+                if(bNoMore)
                 {
-                    //int nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);//zoe 20181017
-                    const float FLOAT_MAX=5.0;//zoe
-                    int nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,FLOAT_MAX/2);
-                    
-                    if(nadditional+nGood>=50)
+                    vbDiscarded[i]=true;
+                    nCandidates--;
+                }
+
+                // If a Camera Pose is computed, optimize
+                if(!Tcw.empty())
+                {
+                    Tcw.copyTo(mCurrentFrame.mTcw);
+
+                    set<MapPoint*> sFound;
+
+                    const int np = vbInliers.size();
+
+                    for(int j=0; j<np; j++)
                     {
-                        nGood = Optimizer::PoseOptimization(&mCurrentFrame);
-
-                        // If many inliers but still not enough, search by projection again in a narrower window
-                        // the camera has been already optimized with many points
-                        if(nGood>30 && nGood<50)
+                        if(vbInliers[j])
                         {
-                            sFound.clear();
-                            for(int ip =0; ip<mCurrentFrame.N; ip++)
-                                if(mCurrentFrame.mvpMapPoints[ip])
-                                    sFound.insert(mCurrentFrame.mvpMapPoints[ip]);
-                            //nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20181017
-                            nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,FLOAT_MAX/6);
+                            mCurrentFrame.mvpMapPoints[j]=vvpMapPointMatches[i][j];
+                            sFound.insert(vvpMapPointMatches[i][j]);
+                        }
+                        else
+                            mCurrentFrame.mvpMapPoints[j]=NULL;
+                    }
 
-                            // Final optimization
-                            if(nGood+nadditional>=50)
+                    int nGood = Optimizer::PoseOptimization(&mCurrentFrame);
+
+                    if(nGood<10)
+                        continue;
+
+                    for(int io =0; io<mCurrentFrame.N; io++)
+                        if(mCurrentFrame.mvbOutlier[io])
+                            mCurrentFrame.mvpMapPoints[io]=static_cast<MapPoint*>(NULL);
+
+                    // If few inliers, search by projection in a coarse window and optimize again
+                    if(nGood<50)
+                    {
+                        //int nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);//zoe 20181017
+                        const float FLOAT_MAX=5.0;//zoe
+                        int nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,FLOAT_MAX/2);
+                        
+                        if(nadditional+nGood>=50)
+                        {
+                            nGood = Optimizer::PoseOptimization(&mCurrentFrame);
+
+                            // If many inliers but still not enough, search by projection again in a narrower window
+                            // the camera has been already optimized with many points
+                            if(nGood>30 && nGood<50)
                             {
-                                nGood = Optimizer::PoseOptimization(&mCurrentFrame);
+                                sFound.clear();
+                                for(int ip =0; ip<mCurrentFrame.N; ip++)
+                                    if(mCurrentFrame.mvpMapPoints[ip])
+                                        sFound.insert(mCurrentFrame.mvpMapPoints[ip]);
+                                //nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20181017
+                                nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,FLOAT_MAX/6);
 
-                                for(int io =0; io<mCurrentFrame.N; io++)
-                                    if(mCurrentFrame.mvbOutlier[io])
-                                        mCurrentFrame.mvpMapPoints[io]=NULL;
+                                // Final optimization
+                                if(nGood+nadditional>=50)
+                                {
+                                    nGood = Optimizer::PoseOptimization(&mCurrentFrame);
+
+                                    for(int io =0; io<mCurrentFrame.N; io++)
+                                        if(mCurrentFrame.mvbOutlier[io])
+                                            mCurrentFrame.mvpMapPoints[io]=NULL;
+                                }
                             }
                         }
                     }
-                }
 
 
-                // If the pose is supported by enough inliers stop ransacs and continue
-                if(nGood>=50)
-                {
-                    bMatch = true;
-                    break;
+                    // If the pose is supported by enough inliers stop ransacs and continue
+                    if(nGood>=50)
+                    {
+                        bMatch = true;
+                        break;
+                    }
                 }
             }
         }
     }
+    else
+    {
+        vector<KeyFrame*> vpCandidateKFs = mpMap->GetAllKeyFrames();
+
+        if(vpCandidateKFs.empty())
+        {
+            return false;
+        }
+    
+        const int nKFs = vpCandidateKFs.size();
+
+        // We perform first an ORB matching with each candidate
+        // If enough matches are found we setup a PnP solver
+        ORBmatcher matcher(0.75,true);
+
+        vector<PnPsolver*> vpPnPsolvers;
+        vpPnPsolvers.resize(nKFs);
+
+        vector<vector<MapPoint*> > vvpMapPointMatches;
+        vvpMapPointMatches.resize(nKFs);
+
+        vector<bool> vbDiscarded;
+        vbDiscarded.resize(nKFs);
+
+        int nCandidates=0;
+
+        for(int i=0; i<nKFs; i++)
+        {
+            KeyFrame* pKF = vpCandidateKFs[i];
+            if(pKF->isBad())
+                vbDiscarded[i] = true;
+            else
+            {
+                //int nmatches = matcher.SearchByBoW(pKF,mCurrentFrame,vvpMapPointMatches[i]);//zoe 20181017
+                int nmatches = matcher.SearchByBFLFNet(pKF,mCurrentFrame,vvpMapPointMatches[i]);
+                
+                if(nmatches<15)
+                {
+                    vbDiscarded[i] = true;
+                    continue;
+                }
+                else
+                {
+                    PnPsolver* pSolver = new PnPsolver(mCurrentFrame,vvpMapPointMatches[i]);
+                    pSolver->SetRansacParameters(0.99,10,300,4,0.5,5.991);
+                    vpPnPsolvers[i] = pSolver;
+                    nCandidates++;
+                }
+            }
+        }
+    
+
+        // Alternatively perform some iterations of P4P RANSAC
+        // Until we found a camera pose supported by enough inliers
+        
+        ORBmatcher matcher2(0.9,true);
+
+        while(nCandidates>0 && !bMatch)
+        {
+            for(int i=0; i<nKFs; i++)
+            {
+                if(vbDiscarded[i])
+                    continue;
+
+                // Perform 5 Ransac Iterations
+                vector<bool> vbInliers;
+                int nInliers;
+                bool bNoMore;
+
+                PnPsolver* pSolver = vpPnPsolvers[i];
+                cv::Mat Tcw = pSolver->iterate(5,bNoMore,vbInliers,nInliers);
+
+                // If Ransac reachs max. iterations discard keyframe
+                if(bNoMore)
+                {
+                    vbDiscarded[i]=true;
+                    nCandidates--;
+                }
+
+                // If a Camera Pose is computed, optimize
+                if(!Tcw.empty())
+                {
+                    Tcw.copyTo(mCurrentFrame.mTcw);
+
+                    set<MapPoint*> sFound;
+
+                    const int np = vbInliers.size();
+
+                    for(int j=0; j<np; j++)
+                    {
+                        if(vbInliers[j])
+                        {
+                            mCurrentFrame.mvpMapPoints[j]=vvpMapPointMatches[i][j];
+                            sFound.insert(vvpMapPointMatches[i][j]);
+                        }
+                        else
+                            mCurrentFrame.mvpMapPoints[j]=NULL;
+                    }
+
+                    int nGood = Optimizer::PoseOptimization(&mCurrentFrame);
+
+                    if(nGood<10)
+                        continue;
+
+                    for(int io =0; io<mCurrentFrame.N; io++)
+                        if(mCurrentFrame.mvbOutlier[io])
+                            mCurrentFrame.mvpMapPoints[io]=static_cast<MapPoint*>(NULL);
+
+                    // If few inliers, search by projection in a coarse window and optimize again
+                    if(nGood<50)
+                    {
+                        //int nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);//zoe 20181017
+                        const float FLOAT_MAX=5.0;//zoe
+                        int nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,FLOAT_MAX/2);
+                        
+                        if(nadditional+nGood>=50)
+                        {
+                            nGood = Optimizer::PoseOptimization(&mCurrentFrame);
+
+                            // If many inliers but still not enough, search by projection again in a narrower window
+                            // the camera has been already optimized with many points
+                            if(nGood>30 && nGood<50)
+                            {
+                                sFound.clear();
+                                for(int ip =0; ip<mCurrentFrame.N; ip++)
+                                    if(mCurrentFrame.mvpMapPoints[ip])
+                                        sFound.insert(mCurrentFrame.mvpMapPoints[ip]);
+                                //nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20181017
+                                nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,FLOAT_MAX/6);
+
+                                // Final optimization
+                                if(nGood+nadditional>=50)
+                                {
+                                    nGood = Optimizer::PoseOptimization(&mCurrentFrame);
+
+                                    for(int io =0; io<mCurrentFrame.N; io++)
+                                        if(mCurrentFrame.mvbOutlier[io])
+                                            mCurrentFrame.mvpMapPoints[io]=NULL;
+                                }
+                            }
+                        }
+                    }
+
+
+                    // If the pose is supported by enough inliers stop ransacs and continue
+                    if(nGood>=50)
+                    {
+                        bMatch = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
 
     if(!bMatch)
     {
@@ -1696,9 +1987,12 @@ void Tracking::Reset()
     }
 
     // Clear BoW Database
-    cout << "Reseting Database...";
-    mpKeyFrameDB->clear();
-    cout << " done" << endl;
+    if (mpKeyFrameDB)
+    {
+        cout << "Reseting Database...";
+        mpKeyFrameDB->clear();
+        cout << " done" << endl;
+    }
 
     // Clear Map (this erase MapPoints and KeyFrames)
     mpMap->clear();

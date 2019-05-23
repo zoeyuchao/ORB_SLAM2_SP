@@ -20,14 +20,14 @@
 
 #include "ORBmatcher.h"
 
-#include<limits.h>
+#include <limits.h>
 
-#include<opencv2/core/core.hpp>
-#include<opencv2/features2d/features2d.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/features2d/features2d.hpp>
 
 #include "Thirdparty/DBoW2/DBoW2/FeatureVector.h"
 
-#include<stdint-gcc.h>
+#include <stdint-gcc.h>
 
 using namespace std;
 
@@ -484,6 +484,107 @@ int ORBmatcher::SearchByBoWLFNet(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMa
         }
     }
 
+
+    if(mbCheckOrientation)
+    {
+        int ind1=-1;
+        int ind2=-1;
+        int ind3=-1;
+
+        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
+
+        for(int i=0; i<HISTO_LENGTH; i++)
+        {
+            if(i==ind1 || i==ind2 || i==ind3)
+                continue;
+            for(size_t j=0, jend=rotHist[i].size(); j<jend; j++)
+            {
+                vpMapPointMatches[rotHist[i][j]]=static_cast<MapPoint*>(NULL);
+                nmatches--;
+            }
+        }
+    }
+
+    return nmatches;
+}
+// zoe 20190522
+int ORBmatcher::SearchByBFLFNet(KeyFrame* pKF,Frame &F, vector<MapPoint*> &vpMapPointMatches)
+{
+    const vector<MapPoint*> vpMapPointsKF = pKF->GetMapPointMatches();
+
+    vpMapPointMatches = vector<MapPoint*>(F.N,static_cast<MapPoint*>(NULL));
+
+    int nmatches=0;
+
+    vector<int> rotHist[HISTO_LENGTH];
+    for(int i=0;i<HISTO_LENGTH;i++)
+        rotHist[i].reserve(500);
+    const float factor = 1.0f/HISTO_LENGTH;
+
+
+    for(size_t iKF=0; iKF<pKF->mvDspts.size(); iKF++)
+    {
+        
+        MapPoint* pMP = vpMapPointsKF[iKF];
+
+        if(!pMP)
+            continue;
+
+        if(pMP->isBad())
+            continue;                
+
+        const std::vector<float> &dKF= pKF->mvDspts[iKF];
+
+        float bestDist1 = FLOAT_MAX;
+        int bestIdxF =-1 ;
+        float bestDist2 = FLOAT_MAX;
+
+        for(size_t iF=0; iF<F.mvDspts.size(); iF++)
+        {
+            
+            if(vpMapPointMatches[iF])
+                continue;
+
+            const std::vector<float> &dF = F.mvDspts[iF];
+
+            const float dist =  DescriptorDistanceLFNet_float(dKF, dF);
+            
+            if(dist<bestDist1)
+            {
+                bestDist2=bestDist1;
+                bestDist1=dist;
+                bestIdxF=iF;
+            }
+            else if(dist<bestDist2)
+            {
+                bestDist2=dist;
+            }
+        }
+
+        if(bestDist1<=TH_LOW_LFNET)
+        {
+            if(static_cast<float>(bestDist1)<mfNNratio*static_cast<float>(bestDist2))
+            {
+                vpMapPointMatches[bestIdxF]=pMP;
+
+                const cv::KeyPoint &kp = pKF->mvKptsUn[iKF];//zoe 20181018
+
+                if(mbCheckOrientation)
+                {
+                    float rot = kp.angle-F.mvKpts[bestIdxF].angle;//zoe 20181018
+                    if(rot<0.0)
+                        rot+=360.0f;
+                    int bin = round(rot*factor);
+                    if(bin==HISTO_LENGTH)
+                        bin=0;
+                    assert(bin>=0 && bin<HISTO_LENGTH);
+                    rotHist[bin].push_back(bestIdxF);
+                }
+                nmatches++;
+            }
+        }
+
+    }
 
     if(mbCheckOrientation)
     {
@@ -1252,7 +1353,113 @@ int ORBmatcher::SearchByBoWLFNet(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint
 
     return nmatches;
 }
+// zoe 20190522
+int ORBmatcher::SearchByBFLFNet(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &vpMatches12)
+{
+    const vector<cv::KeyPoint> &vKptsUn1 = pKF1->mvKptsUn;
+    const vector<MapPoint*> vpMapPoints1 = pKF1->GetMapPointMatches();
+    const std::vector<std::vector<float>> &Descriptors1 = pKF1->mvDspts;
 
+    const vector<cv::KeyPoint> &vKptsUn2 = pKF2->mvKptsUn;
+    const vector<MapPoint*> vpMapPoints2 = pKF2->GetMapPointMatches();
+    const std::vector<std::vector<float>> &Descriptors2 = pKF2->mvDspts;
+
+    vpMatches12 = vector<MapPoint*>(vpMapPoints1.size(),static_cast<MapPoint*>(NULL));
+    vector<bool> vbMatched2(vpMapPoints2.size(),false);
+
+    vector<int> rotHist[HISTO_LENGTH];
+    for(int i=0;i<HISTO_LENGTH;i++)
+        rotHist[i].reserve(500);
+
+    const float factor = 1.0f/HISTO_LENGTH;
+
+    int nmatches = 0;
+
+    for(size_t i1=0, iend1=Descriptors1.size(); i1<iend1; i1++)
+    {
+        MapPoint* pMP1 = vpMapPoints1[i1];
+        if(!pMP1)
+            continue;
+        if(pMP1->isBad())
+            continue;
+
+        const std::vector<float> &d1 = Descriptors1[i1];
+
+        float bestDist1 = FLOAT_MAX;
+        int bestIdx2 =-1 ;
+        float bestDist2 = FLOAT_MAX;
+
+        for(size_t i2=0, iend2=Descriptors2.size(); i2<iend2; i2++)
+        {
+            MapPoint* pMP2 = vpMapPoints2[i2];
+
+            if(vbMatched2[i2] || !pMP2)
+                continue;
+
+            if(pMP2->isBad())
+                continue;
+
+            const std::vector<float> &d2 = Descriptors2[i2];
+
+            float distLFNet = DescriptorDistanceLFNet_float(d1,d2);
+
+            if(distLFNet<bestDist1)
+            {
+                bestDist2=bestDist1;
+                bestDist1=distLFNet;
+                bestIdx2=i2;
+            }
+            else if(distLFNet<bestDist2)
+            {
+                bestDist2=distLFNet;
+            }
+        }
+
+        if(bestDist1<TH_LOW_LFNET)
+        {
+            if(static_cast<float>(bestDist1)<mfNNratio*static_cast<float>(bestDist2))
+            {
+                vpMatches12[i1]=vpMapPoints2[bestIdx2];
+                vbMatched2[bestIdx2]=true;
+
+                if(mbCheckOrientation)
+                {
+                    float rot = vKptsUn1[i1].angle-vKptsUn2[bestIdx2].angle;
+                    if(rot<0.0)
+                        rot+=360.0f;
+                    int bin = round(rot*factor);
+                    if(bin==HISTO_LENGTH)
+                        bin=0;
+                    assert(bin>=0 && bin<HISTO_LENGTH);
+                    rotHist[bin].push_back(i1);
+                }
+                nmatches++;
+            }
+        }
+    }
+
+    if(mbCheckOrientation)
+    {
+        int ind1=-1;
+        int ind2=-1;
+        int ind3=-1;
+
+        ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
+
+        for(int i=0; i<HISTO_LENGTH; i++)
+        {
+            if(i==ind1 || i==ind2 || i==ind3)
+                continue;
+            for(size_t j=0, jend=rotHist[i].size(); j<jend; j++)
+            {
+                vpMatches12[rotHist[i][j]]=static_cast<MapPoint*>(NULL);
+                nmatches--;
+            }
+        }
+    }
+
+    return nmatches;
+}
 
 int ORBmatcher::SearchForTriangulation(KeyFrame *pKF1, KeyFrame *pKF2, cv::Mat F12,
                                        vector<pair<size_t, size_t> > &vMatchedPairs, const bool bOnlyStereo)

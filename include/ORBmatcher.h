@@ -67,6 +67,9 @@ public:
     // Used in Relocalisation and Loop Detection
     int SearchByBoWLFNet(KeyFrame *pKF, Frame &F, std::vector<MapPoint*> &vpMapPointMatches);
     int SearchByBoWLFNet(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<MapPoint*> &vpMatches12);
+    // zoe 20190522
+    int SearchByBFLFNet(KeyFrame *pKF, Frame &F, std::vector<MapPoint*> &vpMapPointMatches);
+    int SearchByBFLFNet(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<MapPoint*> &vpMatches12);
     // Matching for the Map Initialization (only used in the monocular case)
     int SearchForInitializationLFNet(Frame &F1, Frame &F2, std::vector<cv::Point2f> &vbPrevMatched, std::vector<int> &vnMatches12, int windowSize=10);
 
