@@ -1,25 +1,35 @@
-# SP-SLAM使用说明
+# SP-SLAM-ROS使用说明
 
 ## 1. 安装
 
 跟LF-SLAM一样，请移步。
+
+这一个版本需要检查一下是不是安装了libpcl-dev这个库，用这个命令 `sudo apt-get install libpcl-dev`，默认安装的是1.7版本。
 
 ## 2. 使用
 
 - 下载数据集，[链接](链接：https://pan.baidu.com/s/1TIuS7voxUUHdXP6Jv8X8jA 
   )（提取码：2vfm ）
 
-在***~/catkin_ws/src/ORB_SLAM2_SP***路径下运行下列语句:
+- 在bashrc文件里写上
+
+  ```Shell
+  export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Examples/ROS/ORB_SLAM2_SP
+  ```
+
+  
+
+- 在***~/catkin_ws/src/ORB_SLAM2_SP***路径下运行下列语句:
 
 [^]: 注意:运行前要先运行SP,将特征提前提取完毕(这一步已经做完,暂时不需要再运行),存储在/home/zoe/data/rgbd_dataset_freiburg1_room/SP文件里,如果改动了SP-SLAM的代码,先在build下进行编译.
 
 ```bash
-./Examples/RGB-D/rgbd_tum Vocabulary/LFNET500voc.txt Examples/RGB-D/TUM1.yaml /home/yuchao/Data/rgbd_dataset_freiburg1_room /home/yuchao/Data/rgbd_dataset_freiburg1_room/associate.txt
+roslaunch ORB_SLAM2_SP TUM.launch
 ```
 
 特别注意：
 
-- rgb-d tum文件里有4个true或者false的选项需要在编译之前修改，分别控制的是viewer，localmap，loop和trackonly这4种模式（代码中改动的地方搜索zoe 20190513能找到）
+- Examples/ROS/ORB_SLAM2_SP/src/ros_tum.cc文件里有4个true或者false的选项需要在编译之前修改，分别控制的是viewer，localmap，loop和trackonly这4种模式（代码中改动的地方搜索zoe 20190513能找到）
 
 ## 3. 说明
 
