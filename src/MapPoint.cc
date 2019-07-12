@@ -470,6 +470,8 @@ int MapPoint::PredictScale(const float &currentDist, KeyFrame* pKF)
         unique_lock<mutex> lock(mMutexPos);
         ratio = mfMaxDistance/currentDist;
     }
+    if (pKF->mfLogScaleFactor == 0)
+        return 0;
 
     int nScale = ceil(log(ratio)/pKF->mfLogScaleFactor);
     if(nScale<0)
@@ -487,8 +489,10 @@ int MapPoint::PredictScale(const float &currentDist, Frame* pF)
         unique_lock<mutex> lock(mMutexPos);
         ratio = mfMaxDistance/currentDist;
     }
-
+    if (pF->mfLogScaleFactor == 0)
+        return 0;
     int nScale = ceil(log(ratio)/pF->mfLogScaleFactor);
+
     if(nScale<0)
         nScale = 0;
     else if(nScale>=pF->mnScaleLevels)

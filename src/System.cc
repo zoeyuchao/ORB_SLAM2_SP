@@ -69,6 +69,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Create Drawers. These are used by the Viewer
     mpFrameDrawer = new FrameDrawer(mpMap);
     mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
+    float resolution = fsSettings["PointCloudMapping.Resolution"];
+    mpPointCloudMapping = boost::make_shared<PointCloudMapping>(resolution);//zoe 20190711
 
     if (mbUseBoW)
     {
@@ -90,11 +92,11 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabularyLFNet);// zoe database名字没改
     
         mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer,
-                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190513 增加tracking参数
+                             mpMap, mpKeyFrameDatabase, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190513 增加tracking参数
     }
     else
     {
-        mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190520
+        mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190520
     }
     //Initialize the Local Mapping thread and launch
     if (mbUseLocalMap)

@@ -11,3 +11,8 @@ absolute_translational_error.rmse 0.235712 mabsolute_translational_error.mean 0.
 absolute_translational_error.rmse 0.279557 mabsolute_translational_error.mean 0.253273 mabsolute_translational_error.median 0.244458 mabsolute_translational_error.std 0.118343 m
 absolute_translational_error.rmse 0.242542 mabsolute_translational_error.mean 0.220632 mabsolute_translational_error.median 0.204323 mabsolute_translational_error.std 0.100738 m
 absolute_translational_error.rmse 0.212963 mabsolute_translational_error.mean 0.194018 mabsolute_translational_error.median 0.169772 mabsolute_translational_error.std 0.087808 m
+absolute_translational_error.rmse 0.243558 mabsolute_translational_error.mean 0.224988 mabsolute_translational_error.median 0.221198 mabsolute_translational_error.std 0.093278 m
+absolute_translational_error.rmse 0.230610 mabsolute_translational_error.mean 0.212067 mabsolute_translational_error.median 0.185360 mabsolute_translational_error.std 0.090603 m
+absolute_translational_error.rmse 0.275779 mabsolute_translational_error.mean 0.250411 mabsolute_translational_error.median 0.238071 mabsolute_translational_error.std 0.115535 m
+absolute_translational_error.rmse 0.265291 mabsolute_translational_error.mean 0.251231 mabsolute_translational_error.median 0.236832 mabsolute_translational_error.std 0.085220 m
+absolute_translational_error.rmse 0.050422 mabsolute_translational_error.mean 0.043088 mabsolute_translational_error.median 0.035848 mabsolute_translational_error.std 0.026188 m

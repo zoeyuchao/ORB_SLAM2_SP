@@ -25,20 +25,24 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
-#include"Viewer.h"
-#include"FrameDrawer.h"
-#include"Map.h"
-#include"LocalMapping.h"
-#include"LoopClosing.h"
-#include"Frame.h"
+#include "Viewer.h"
+#include "FrameDrawer.h"
+#include "Map.h"
+#include "LocalMapping.h"
+#include "LoopClosing.h"
+#include "Frame.h"
 #include "ORBVocabulary.h"
-#include"KeyFrameDatabase.h"
-#include"ORBextractor.h"
+#include "KeyFrameDatabase.h"
+#include "ORBextractor.h"
 #include "Initializer.h"
 #include "MapDrawer.h"
 #include "System.h"
+#include "boost/make_shared.hpp"
+#include "PointCloud.h"
 
 #include <mutex>
+
+class PointCloudMapping;
 
 namespace ORB_SLAM2
 {
@@ -50,19 +54,19 @@ class LocalMapping;
 class LoopClosing;
 class System;
 
+
+
 class Tracking
 {  
 
 public:
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bOnlyTracking);//zoe 20190513 增加最后一个参数
-
+             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bOnlyTracking);//zoe 20190513 增加最后一个参�?
     //zoe 20181016
     Tracking(System* pSys, LFNETVocabulary* pVocLFNet, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bOnlyTracking);// zoe 20190513 增加最后一个参数
-    
+             KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking);// zoe 20190513 增加最后一个参�?    
     //zoe 20190520
-    Tracking(System* pSys, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
+    Tracking(System* pSys, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, 
              const string &strSettingPath, const int sensor, const bool bOnlyTracking);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
@@ -103,6 +107,8 @@ public:
     // Current Frame
     Frame mCurrentFrame;
     cv::Mat mImGray;
+    cv::Mat mImDepth;//zoe 20190711
+    cv::Mat mImRGB;//zoe 20190711
 
     // Initialization Variables (Monocular)
     std::vector<int> mvIniLastMatches;
@@ -192,6 +198,8 @@ protected:
 
     //Map
     Map* mpMap;
+    
+    boost::shared_ptr<PointCloudMapping> mpPointCloudMapping;
 
     //Calibration matrix
     cv::Mat mK;
