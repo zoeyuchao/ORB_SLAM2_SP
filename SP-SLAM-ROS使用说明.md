@@ -17,7 +17,9 @@
   export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Examples/ROS/ORB_SLAM2_SP
   ```
 
-  
+- 修改Frame.cc文件里的路径
+
+- yaml文件检查是否有PointCloudMapping.Resolution: 0.05这句话
 
 - 在***~/catkin_ws/src/ORB_SLAM2_SP***路径下运行下列语句:
 

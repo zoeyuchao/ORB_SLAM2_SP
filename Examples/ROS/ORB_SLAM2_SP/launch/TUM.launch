@@ -3,5 +3,5 @@
 	<!-- orb slam  -->
 	<node pkg="ORB_SLAM2_SP" name="TUM" type="TUM" args="$(find ORB_SLAM2_SP)/../../../Vocabulary/LFNET500voc.txt $(find ORB_SLAM2_SP)/TUM1.yaml /home/yuchao/Data/rgbd_dataset_freiburg1_room /home/yuchao/Data/rgbd_dataset_freiburg1_room/associate.txt" output="screen" />
 
-	
+	<node pkg="rviz" name="rviz" type="rviz" />
 </launch>
