@@ -45,6 +45,11 @@ sensor_msgs::PointCloud2 pcl_point;
 
 pcl::PointCloud<pcl::PointXYZRGBA> pcl_cloud;
 
+// every frame cloud
+sensor_msgs::PointCloud2 camera_point;
+ros::Publisher camera_pub;
+pcl::PointCloud<pcl::PointXYZRGBA> camera_cloud;
+
 PointCloudMapping::PointCloudMapping(double resolution_)
 {
     this->resolution = resolution_;
@@ -102,6 +107,13 @@ pcl::PointCloud< PointCloudMapping::PointT >::Ptr PointCloudMapping::generatePoi
 			tmp->points.push_back(p);
         }
     }
+    // add camera points
+    ros::NodeHandle n;
+    camera_pub = n.advertise<sensor_msgs::PointCloud2>("/ORB_SLAM2_SP/camera_PointCloud",100000);
+    camera_cloud = *tmp;
+    pcl::toROSMsg(camera_cloud, camera_point);
+    camera_point.header.frame_id = "/map";
+    camera_pub.publish(camera_point);
 
     Eigen::Isometry3d T = ORB_SLAM2::Converter::toSE3Quat( kf->GetPose() );
     PointCloud::Ptr cloud(new PointCloud);

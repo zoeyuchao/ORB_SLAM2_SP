@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     }
     
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD, true, true, true, true, true, false); //viewer, localmap, loop, bow, orb, trackonly, 若bow为false，loop也不会启动
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD, true, true, true, true, true, false, false); //viewer, localmap, loop, bow, orb, trackonly, 若bow为false，loop也不会启动
 
     // Vector for tracking time statistics
     vector<double> vTimesTrack;

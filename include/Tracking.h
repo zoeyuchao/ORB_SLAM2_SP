@@ -71,6 +71,13 @@ public:
     Tracking(System* pSys, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, 
              const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB);
 
+    //zoe 20180724
+    //Tracking(System* pSys, LFNETVocabulary* pVocLFNet, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
+             //KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage, const string &strSettingPath, const int sensor, const bool bOnlyTracking);// zoe 20190513 增加最后一个参�?    
+    //zoe 20190724
+    //Tracking(System* pSys, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage,
+             //const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB);
+
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
     cv::Mat GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp);
@@ -129,6 +136,9 @@ public:
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
     bool mbUseORB;
+    bool mbUseExistFile;
+    //std::shared_ptr<torch::jit::script::Module> mpModule;//zoe 20190724
+    //float* mpImage;//zoe 20190724
 
     void Reset();
 

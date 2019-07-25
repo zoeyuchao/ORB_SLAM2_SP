@@ -39,6 +39,12 @@
 #include "boost/make_shared.hpp"
 #include "PointCloud.h"
 
+//#include <torch/script.h> // One-stop header.
+//#include <torch/serialize.h>
+#include <iostream>
+#include <memory>
+#include <algorithm>
+
 class PointCloudMapping;
 
 namespace ORB_SLAM2
@@ -65,7 +71,7 @@ public:
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const bool bUseLocalMap = true, const bool bUseLoop = true, const bool bUseBoW = false, const bool bUseORB = false, const bool bOnlyTracking = false);
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const bool bUseLocalMap = true, const bool bUseLoop = true, const bool bUseBoW = false, const bool bUseORB = false, const bool bUseExistFile = true, const bool bOnlyTracking = false);
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -169,6 +175,8 @@ private:
     std::thread* mptLoopClosing;
     std::thread* mptViewer;
     boost::shared_ptr<PointCloudMapping> mpPointCloudMapping;//zoe 20190711
+    //std::shared_ptr<torch::jit::script::Module> mpModule;//zoe 20190724
+    //float* mpImage;//zoe 20190724
 
     // Reset flag
     std::mutex mMutexReset;
@@ -180,6 +188,8 @@ private:
     bool mbUseBoW;
     //zoe 20190719
     bool mbUseORB;
+    //zoe 20190724
+    bool mbUseExistFile;
     // zoe 20190513
     bool mbOnlyTracking;
 

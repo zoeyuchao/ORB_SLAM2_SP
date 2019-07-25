@@ -26,7 +26,7 @@ else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
-LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules )
 
 find_package(OpenCV 3.0 QUIET)
 if(NOT OpenCV_FOUND)
@@ -39,6 +39,8 @@ endif()
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(PCL 1.7 REQUIRED)
+#set(Torch_DIR /home/tsui/yujc/testcpptorch/libtorch/share/cmake/Torch)
+#find_package(Torch REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS 
   roscpp
@@ -54,6 +56,7 @@ ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 ${catkin_INCLUDE_DIRS}
 ${PCL_INCLUDE_DIRS}
+#${TORCH_INCLUDE_DIRS}
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -89,6 +92,7 @@ ${PCL_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
 ${catkin_LIBRARIES}
+#${TORCH_LIBRARIES}
 )
 
 # Build examples

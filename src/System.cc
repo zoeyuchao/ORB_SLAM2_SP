@@ -30,8 +30,8 @@ namespace ORB_SLAM2
 {
 //zoe 20190513
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer, const bool bUseLocalMap, const bool bUseLoop, const bool bUseBow, const bool bUseORB, const bool bOnlyTracking):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
-        mbDeactivateLocalizationMode(false), mbUseLocalMap(bUseLocalMap), mbUseLoop(bUseLoop), mbUseBoW(bUseBow), mbUseORB(bUseORB), mbOnlyTracking(bOnlyTracking)
+               const bool bUseViewer, const bool bUseLocalMap, const bool bUseLoop, const bool bUseBow, const bool bUseORB, const bool bUseExistFile, const bool bOnlyTracking):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+        mbDeactivateLocalizationMode(false), mbUseLocalMap(bUseLocalMap), mbUseLoop(bUseLoop), mbUseBoW(bUseBow), mbUseORB(bUseORB), mbUseExistFile(bUseExistFile), mbOnlyTracking(bOnlyTracking)
 {
     // Output welcome message
     cout << endl <<
@@ -62,6 +62,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     cout << "Loop Closing is set: " << mbUseLoop << endl;
     cout << "Use BoW is set: " << mbUseBoW << endl;
     cout << "Use ORB is set: " << mbUseORB << endl;
+    cout << "Use ExistFile is set: " << mbUseExistFile << endl;
     cout << "Only Track is set: " << mbOnlyTracking << endl;
 
     //Create the Map
@@ -73,10 +74,45 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     float resolution = fsSettings["PointCloudMapping.Resolution"];
     mpPointCloudMapping = boost::make_shared<PointCloudMapping>(resolution);//zoe 20190711
 
+    if (mbUseORB && mbUseExistFile)
+    {
+        cout << "ORB and ExistFile can not be true together, so use ORB is chosen first！" << endl;
+    }
+
+    if (mbUseLoop && !mbUseBoW)
+    {
+        cout << "Loop needs BoW, so Loop will be closed！" << endl;
+    }
+    /*
+    if (!mbUseORB && !mbUseExistFile)
+    {
+        cout << endl << "Loading Pytorch Model..." << endl;
+
+        mpModule = torch::jit::load("model/modelSP_fuse.pt");
+        mpModule->to(at::kCUDA);
+        assert(mpModule != nullptr);
+
+        int Height = fsSettings["Camera.height"];//480;
+        int Width = fsSettings["Camera.width"];//640;
+        if(Height != 480 || Width != 640)
+        {
+            Height = 480;
+            Width = 640;
+            cout << "Detect different image size, check resize!" << endl;
+        }
+        mpImage = new float [1*1*Height*Width];
+        
+        std::ifstream inpfile("model/inp.qwe", std::ios::binary);
+        inpfile.read((char*)mpImage, 1*1*Height*Width*sizeof(float));
+        inpfile.close();
+
+        cout << endl << "Pytorch Model loaded!" << endl;
+    }
+    */
     if (mbUseBoW)
     {
         //Load Vocabulary
-        cout << endl << "Loading Vocabulary. This could take a while..." << endl;
+        cout << endl << "Loading Vocabulary..." << endl;
 
         //zoe 20190719
         if (mbUseORB)
@@ -111,14 +147,22 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
             //Create KeyFrame Database
             mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabularyLFNet, mbUseORB);// zoe database名字没改
-        
-            mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer,
+
+            if (mbUseExistFile)
+                mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer, 
                                 mpMap, mpKeyFrameDatabase, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190513 增加tracking参数
+            //else
+                //mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer, mpMap, mpKeyFrameDatabase, mpPointCloudMapping, mpModule, mpImage, strSettingsFile, mSensor, mbOnlyTracking); //zoe 2019724 增加pytorch参数
+            
         }
     }
     else
     {
-        mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking, mbUseORB); //zoe 20190520
+        if (mbUseExistFile)
+            mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking, mbUseORB); //zoe 20190520
+        //else
+            //mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, mpModule, mpImage, strSettingsFile, mSensor, mbOnlyTracking, mbUseORB); //zoe 20190724
+        
     }
     //Initialize the Local Mapping thread and launch
     if (mbUseLocalMap)

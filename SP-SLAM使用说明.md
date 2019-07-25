@@ -19,7 +19,7 @@
 
 特别注意：
 
-- rgb-d tum文件里有4个true或者false的选项需要在编译之前修改，分别控制的是viewer，localmap，loop和trackonly这4种模式（代码中改动的地方搜索zoe 20190513能找到）
+- rgb-d tum文件里有6个true或者false的选项需要在编译之前修改，分别控制的是viewer，localmap，loop，bow，orb和trackonly这6种模式（代码中改动的地方搜索zoe 20190513能找到）
 
 ## 3. 说明
 

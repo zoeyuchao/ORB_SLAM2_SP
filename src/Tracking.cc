@@ -46,7 +46,7 @@ namespace ORB_SLAM2
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), mbUseORB(true)
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), mbUseORB(true), mbUseExistFile(false)
 {
     // Load camera parameters from settings file
 
@@ -151,7 +151,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(true)
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(true), mbUseExistFile(false)
 {
     // Load camera parameters from settings file
 
@@ -257,7 +257,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(false) //zoe 20190513 tracking参数赋值修改
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(false), mbUseExistFile(true) //zoe 20190513 tracking参数赋值修改
 {
     // Load camera parameters from settings file
 
@@ -358,12 +358,95 @@ Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrame
     }
 
 }
+/* 
+//zoe 20190724
+Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, std::shared_ptr<torch::jit::script::Module> pModule, float* pImage, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpModule(pModule), mpImage(pImage),//zoe 20190724
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(false), mbUseExistFile(false) //zoe 20190513 tracking参数赋值修改
+{
+    // Load camera parameters from settings file
 
+    cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+    float fx = fSettings["Camera.fx"];
+    float fy = fSettings["Camera.fy"];
+    float cx = fSettings["Camera.cx"];
+    float cy = fSettings["Camera.cy"];
+
+    cv::Mat K = cv::Mat::eye(3,3,CV_32F);
+    K.at<float>(0,0) = fx;
+    K.at<float>(1,1) = fy;
+    K.at<float>(0,2) = cx;
+    K.at<float>(1,2) = cy;
+    K.copyTo(mK);
+
+    cv::Mat DistCoef(4,1,CV_32F);
+    DistCoef.at<float>(0) = fSettings["Camera.k1"];
+    DistCoef.at<float>(1) = fSettings["Camera.k2"];
+    DistCoef.at<float>(2) = fSettings["Camera.p1"];
+    DistCoef.at<float>(3) = fSettings["Camera.p2"];
+    const float k3 = fSettings["Camera.k3"];
+    if(k3!=0)
+    {
+        DistCoef.resize(5);
+        DistCoef.at<float>(4) = k3;
+    }
+    DistCoef.copyTo(mDistCoef);
+
+    mbf = fSettings["Camera.bf"];
+
+    float fps = fSettings["Camera.fps"];
+    if(fps==0)
+        fps=30;
+
+    // Max/Min Frames to insert keyframes and to check relocalisation
+    mMinFrames = 0;
+    mMaxFrames = fps;
+
+    cout << endl << "Camera Parameters: " << endl;
+    cout << "- fx: " << fx << endl;
+    cout << "- fy: " << fy << endl;
+    cout << "- cx: " << cx << endl;
+    cout << "- cy: " << cy << endl;
+    cout << "- k1: " << DistCoef.at<float>(0) << endl;
+    cout << "- k2: " << DistCoef.at<float>(1) << endl;
+    if(DistCoef.rows==5)
+        cout << "- k3: " << DistCoef.at<float>(4) << endl;
+    cout << "- p1: " << DistCoef.at<float>(2) << endl;
+    cout << "- p2: " << DistCoef.at<float>(3) << endl;
+    cout << "- fps: " << fps << endl;
+
+
+    int nRGB = fSettings["Camera.RGB"];
+    mbRGB = nRGB;
+
+    if(mbRGB)
+        cout << "- color order: RGB (ignored if grayscale)" << endl;
+    else
+        cout << "- color order: BGR (ignored if grayscale)" << endl;
+
+    if(sensor==System::STEREO || sensor==System::RGBD)
+    {
+        mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
+        cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
+    }
+
+    if(sensor==System::RGBD)
+    {
+        mDepthMapFactor = fSettings["DepthMapFactor"];
+        if(fabs(mDepthMapFactor)<1e-5)
+            mDepthMapFactor=1;
+        else
+            mDepthMapFactor = 1.0f/mDepthMapFactor;
+    }
+
+}
+*/
 // zoe 20190711
 Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
     mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(bUseORB) //zoe 20190513 tracking参数赋值修改
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(bUseORB), mbUseExistFile(true)//zoe 20190513 tracking参数赋值修改
 {
     // Load camera parameters from settings file
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
@@ -465,7 +548,114 @@ Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawe
     }
 
 }
+/*
+// zoe 20190724
+Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage, const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB):
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
+    mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpModule(pModule), mpImage(pImage),//zoe 20190724
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(bUseORB), mbUseExistFile(false) //zoe 20190513 tracking参数赋值修改
+{
+    // Load camera parameters from settings file
+    cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+    float fx = fSettings["Camera.fx"];
+    float fy = fSettings["Camera.fy"];
+    float cx = fSettings["Camera.cx"];
+    float cy = fSettings["Camera.cy"];
 
+    cv::Mat K = cv::Mat::eye(3,3,CV_32F);
+    K.at<float>(0,0) = fx;
+    K.at<float>(1,1) = fy;
+    K.at<float>(0,2) = cx;
+    K.at<float>(1,2) = cy;
+    K.copyTo(mK);
+
+    cv::Mat DistCoef(4,1,CV_32F);
+    DistCoef.at<float>(0) = fSettings["Camera.k1"];
+    DistCoef.at<float>(1) = fSettings["Camera.k2"];
+    DistCoef.at<float>(2) = fSettings["Camera.p1"];
+    DistCoef.at<float>(3) = fSettings["Camera.p2"];
+    const float k3 = fSettings["Camera.k3"];
+    if(k3!=0)
+    {
+        DistCoef.resize(5);
+        DistCoef.at<float>(4) = k3;
+    }
+    DistCoef.copyTo(mDistCoef);
+
+    mbf = fSettings["Camera.bf"];
+
+    float fps = fSettings["Camera.fps"];
+    if(fps==0)
+        fps=30;
+
+    // Max/Min Frames to insert keyframes and to check relocalisation
+    mMinFrames = 0;
+    mMaxFrames = fps;
+
+    cout << endl << "Camera Parameters: " << endl;
+    cout << "- fx: " << fx << endl;
+    cout << "- fy: " << fy << endl;
+    cout << "- cx: " << cx << endl;
+    cout << "- cy: " << cy << endl;
+    cout << "- k1: " << DistCoef.at<float>(0) << endl;
+    cout << "- k2: " << DistCoef.at<float>(1) << endl;
+    if(DistCoef.rows==5)
+        cout << "- k3: " << DistCoef.at<float>(4) << endl;
+    cout << "- p1: " << DistCoef.at<float>(2) << endl;
+    cout << "- p2: " << DistCoef.at<float>(3) << endl;
+    cout << "- fps: " << fps << endl;
+
+
+    int nRGB = fSettings["Camera.RGB"];
+    mbRGB = nRGB;
+
+    if(mbRGB)
+        cout << "- color order: RGB (ignored if grayscale)" << endl;
+    else
+        cout << "- color order: BGR (ignored if grayscale)" << endl;
+
+    // Load ORB parameters
+    if (bUseORB)
+    {
+        int nFeatures = fSettings["ORBextractor.nFeatures"];
+        float fScaleFactor = fSettings["ORBextractor.scaleFactor"];
+        int nLevels = fSettings["ORBextractor.nLevels"];
+        int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
+        int fMinThFAST = fSettings["ORBextractor.minThFAST"];
+        //zoe 20181019
+        mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+        if(sensor==System::STEREO)
+            mpORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+        if(sensor==System::MONOCULAR)
+            mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+        cout << endl  << "ORB Extractor Parameters: " << endl;
+        cout << "- Number of Features: " << nFeatures << endl;
+        cout << "- Scale Levels: " << nLevels << endl;
+        cout << "- Scale Factor: " << fScaleFactor << endl;
+        cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
+        cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
+    }
+    
+    if(sensor==System::STEREO || sensor==System::RGBD)
+    {
+        mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
+        cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
+    }
+
+    if(sensor==System::RGBD)
+    {
+        mDepthMapFactor = fSettings["DepthMapFactor"];
+        if(fabs(mDepthMapFactor)<1e-5)
+            mDepthMapFactor=1;
+        else
+            mDepthMapFactor = 1.0f/mDepthMapFactor;
+    }
+
+}
+*/
 void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
 {
     mpLocalMapper=pLocalMapper;
@@ -548,7 +738,12 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
     //mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);// zoe mark
     //zoe 20181016
     if (mpLFNETVocabulary)
-        mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mpLFNETVocabulary, mK, mDistCoef, mbf, mThDepth);
+    {
+        if (mbUseExistFile)
+            mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mpLFNETVocabulary, mK, mDistCoef, mbf, mThDepth);
+        //else
+            //mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mpLFNETVocabulary, mK, mDistCoef, mbf, mThDepth, mpModule, mpImage);        
+    }
     else if(mpORBVocabulary)
         mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
     else
@@ -556,7 +751,12 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
         if(mbUseORB)
             mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mK, mDistCoef, mbf, mThDepth);
         else
-            mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mK, mDistCoef, mbf, mThDepth);            
+        {
+            if (mbUseExistFile)
+                mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mK, mDistCoef, mbf, mThDepth);    
+            //else
+                //mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mK, mDistCoef, mbf, mThDepth, mpModule, mpImage);    
+        }        
     }
     
     Track();

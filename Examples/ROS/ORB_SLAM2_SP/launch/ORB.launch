@@ -1,8 +1,9 @@
 <launch>  
 
 	<!-- orb slam  -->
-	<node pkg="ORB_SLAM2_SP" name="ORB" type="ORB" args="$(find ORB_SLAM2_SP)/../../../Vocabulary/ORBvoc.txt $(find ORB_SLAM2_SP)/Zdzn.yaml" output="screen">
-		<remap from="/camera/depth_registered/image_raw" to="/camera/depth/image_raw"/>
+	<node pkg="ORB_SLAM2_SP" name="ORB" type="ORB" args="$(find ORB_SLAM2_SP)/../../../Vocabulary/ORBvoc.txt $(find ORB_SLAM2_SP)/AirSim.yaml" output="screen">
+   	   <remap from="/camera/depth_registered/image_raw" to="//airsim_node/drone_1/front_left_custom/DepthPlanner"/>
+	   <remap from="/camera/rgb/image_raw" to="/airsim_node/drone_1/front_left_custom/Scene"/>
     	</node>
 
         <include file="$(find ORB_SLAM2_SP)/launch/Octomap.launch"/>

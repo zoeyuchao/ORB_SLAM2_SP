@@ -32,6 +32,13 @@
 
 #include <opencv2/opencv.hpp>
 
+//#include <torch/script.h> //zoe 20190724
+//#include <torch/serialize.h>
+
+#include <iostream>
+#include <memory>
+#include <algorithm>
+
 namespace ORB_SLAM2
 {
 #define FRAME_GRID_ROWS 48
@@ -59,6 +66,12 @@ public:
     
     //zoe 20190520
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+
+    //zoe 20190724
+    //Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage);
+    
+    //zoe 20190724
+    //Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage);
 
    //zoe 20190721
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
