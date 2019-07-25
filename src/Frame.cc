@@ -226,8 +226,8 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     //ExtractORB(0,imGray);
     //cout << "ORB feats : " << mDescriptors << endl;
     
-    string strLFNetPath = "/dev/shm/tmpSP/";
-    //string strLFNetPath = "/home/tsui/Data/rgbd_dataset_freiburg1_room/SP/";
+    //string strLFNetPath = "/dev/shm/tmpSP/";
+    string strLFNetPath = "/home/yuchao/Data/rgbd_dataset_freiburg1_room/SP/";
     int kpts_num = 1000;//超参数,可以根据情况修改 每张照片提取特征点的个数 1000个,目前是跟ORB本身的个数是一样的.
     mnScaleLevels = 5; //超参数
     float Scale[mnScaleLevels] = {1.41421356, 1.18920712, 1.0, 0.84089642, 0.70710678};
@@ -377,7 +377,8 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     //ExtractORB(0,imGray);
     //cout << "ORB feats : " << mDescriptors << endl;
     
-    string strLFNetPath = "/dev/shm/tmpSP/";
+    //string strLFNetPath = "/dev/shm/tmpSP/";
+    string strLFNetPath = "/home/yuchao/Data/rgbd_dataset_freiburg1_room/SP/";
     int kpts_num = 1000;//超参数,可以根据情况修改 每张照片提取特征点的个数 1000个,目前是跟ORB本身的个数是一样的.
     mnScaleLevels = 5; //超参数
     float Scale[mnScaleLevels] = {1.41421356, 1.18920712, 1.0, 0.84089642, 0.70710678};
@@ -818,7 +819,7 @@ bool Frame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
 
 void Frame::ComputeBoW()
 {
-    if(mBowVec.empty())
+    if(mpORBvocabulary && mBowVec.empty())
     {
         vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
         mpORBvocabulary->transform(vCurrentDesc,mBowVec,mFeatVec,4);

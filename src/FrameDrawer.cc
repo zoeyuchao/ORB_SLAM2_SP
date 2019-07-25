@@ -168,7 +168,7 @@ void FrameDrawer::Update(Tracking *pTracker)
 {
     unique_lock<mutex> lock(mMutex);
     pTracker->mImGray.copyTo(mIm);
-    if (pTracker->mCurrentFrame.mpORBvocabulary)
+    if (pTracker->mCurrentFrame.mbUseORB)//zoe 20190725
         mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
     else
         mvCurrentKeys=pTracker->mCurrentFrame.mvKpts;// zoe 20181016
@@ -181,7 +181,7 @@ void FrameDrawer::Update(Tracking *pTracker)
 
     if(pTracker->mLastProcessedState==Tracking::NOT_INITIALIZED)
     {
-        if (pTracker->mInitialFrame.mpORBvocabulary)
+        if (pTracker->mInitialFrame.mbUseORB)//zoe 20190725
             mvIniKeys=pTracker->mInitialFrame.mvKeys;
         else
             mvIniKeys=pTracker->mInitialFrame.mvKpts;//zoe 20181016

@@ -44,7 +44,7 @@ public:
     static int DescriptorDistance(const cv::Mat &a, const cv::Mat &b);
     //========================================================//
     // zoe 20181015
-    // 计算描述子的平方差距离
+    //
     static float DescriptorDistanceLFNet_float(const std::vector<float> &a, const std::vector<float> &b);
     // Search matches between Frame keypoints and projected MapPoints. Returns number of matches
     // Used to track the local map (Tracking)
@@ -109,6 +109,10 @@ public:
     // Used in Relocalisation and Loop Detection
     int SearchByBoW(KeyFrame *pKF, Frame &F, std::vector<MapPoint*> &vpMapPointMatches);
     int SearchByBoW(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<MapPoint*> &vpMatches12);
+    
+    // zoe 20190725
+    int SearchByBF(KeyFrame *pKF, Frame &F, std::vector<MapPoint*> &vpMapPointMatches);
+    int SearchByBF(KeyFrame *pKF1, KeyFrame* pKF2, std::vector<MapPoint*> &vpMatches12);
 
     // Matching for the Map Initialization (only used in the monocular case)
     int SearchForInitialization(Frame &F1, Frame &F2, std::vector<cv::Point2f> &vbPrevMatched, std::vector<int> &vnMatches12, int windowSize=10);

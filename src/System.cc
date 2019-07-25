@@ -64,6 +64,11 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     cout << "Use ORB is set: " << mbUseORB << endl;
     cout << "Only Track is set: " << mbOnlyTracking << endl;
 
+    if (mbUseLoop && !mbUseBoW)
+    {
+        cout << "Loop needs BoW, so Loop will be closed！" << endl;
+    }
+
     //Create the Map
     mpMap = new Map();
 
