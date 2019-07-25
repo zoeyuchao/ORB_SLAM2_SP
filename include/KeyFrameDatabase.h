@@ -43,10 +43,10 @@ class KeyFrameDatabase
 {
 public:
 
-  KeyFrameDatabase(const ORBVocabulary &voc);
+  KeyFrameDatabase(const ORBVocabulary &voc, const bool bUseORB);
   //============================================//
   //zoe 20181016
-  KeyFrameDatabase(const LFNETVocabulary &voclfnet);
+  KeyFrameDatabase(const LFNETVocabulary &voclfnet, const bool bUseORB);
   //===========================================//
 
    void add(KeyFrame* pKF);
@@ -74,6 +74,7 @@ protected:
 
   // Mutex
   std::mutex mMutex;
+  bool mbUseORB;//zoe 20190719
 };
 
 } //namespace ORB_SLAM

@@ -116,6 +116,8 @@ public:
 
     static std::mutex mGlobalMutex;
 
+    bool mbUseORB;
+
 protected:    
 
      // Position in absolute coordinates

@@ -57,7 +57,7 @@ Frame::Frame(const Frame &frame)
      mpReferenceKF(frame.mpReferenceKF), mnScaleLevels(frame.mnScaleLevels),
      mfScaleFactor(frame.mfScaleFactor), mfLogScaleFactor(frame.mfLogScaleFactor),
      mvScaleFactors(frame.mvScaleFactors), mvInvScaleFactors(frame.mvInvScaleFactors),
-     mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2)
+     mvLevelSigma2(frame.mvLevelSigma2), mvInvLevelSigma2(frame.mvInvLevelSigma2), mbUseORB(frame.mbUseORB)
 {
     for(int i=0;i<FRAME_GRID_COLS;i++)
         for(int j=0; j<FRAME_GRID_ROWS; j++)
@@ -70,7 +70,7 @@ Frame::Frame(const Frame &frame)
 
 Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeStamp, ORBextractor* extractorLeft, ORBextractor* extractorRight, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractorLeft),mpORBextractorRight(extractorRight), mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),
-     mpReferenceKF(static_cast<KeyFrame*>(NULL))
+     mpReferenceKF(static_cast<KeyFrame*>(NULL)), mbUseORB(true)
 {
     // Frame ID
     mnId=nNextId++;
@@ -127,8 +127,8 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 }
 
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
-    :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+    :mpORBvocabulary(voc),mpLFNETvocabulary(static_cast<LFNETVocabulary*>(NULL)),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth), mbUseORB(true)
 {
     // Frame ID
     mnId=nNextId++;
@@ -178,6 +178,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     mb = mbf/fx;
 
     AssignFeaturesToGrid();
+
 }
 //20190511 zoe
 static float SP_Angle(const cv::Mat& image, cv::KeyPoint& kpt, const vector<int>& u_max)
@@ -211,8 +212,8 @@ static float SP_Angle(const cv::Mat& image, cv::KeyPoint& kpt, const vector<int>
 
 //zoe 20181016
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
-    :mpLFNETvocabulary(voclfnet),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+    :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)),mpLFNETvocabulary(voclfnet),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth), mbUseORB(false)
 {
     // Frame ID
     mnId=nNextId++;
@@ -225,7 +226,8 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     //ExtractORB(0,imGray);
     //cout << "ORB feats : " << mDescriptors << endl;
     
-    string strLFNetPath = "/home/yuchao/Data/rgbd_dataset_freiburg1_room/SP/";
+    string strLFNetPath = "/dev/shm/tmpSP/";
+    //string strLFNetPath = "/home/tsui/Data/rgbd_dataset_freiburg1_room/SP/";
     int kpts_num = 1000;//超参数,可以根据情况修改 每张照片提取特征点的个数 1000个,目前是跟ORB本身的个数是一样的.
     mnScaleLevels = 5; //超参数
     float Scale[mnScaleLevels] = {1.41421356, 1.18920712, 1.0, 0.84089642, 0.70710678};
@@ -361,8 +363,8 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
 //zoe 20190520
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
-    :mpLFNETvocabulary(static_cast<LFNETVocabulary*>(NULL)),mpORBextractorLeft(static_cast<ORBextractor*>(NULL)),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+    :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)), mpLFNETvocabulary(static_cast<LFNETVocabulary*>(NULL)),mpORBextractorLeft(static_cast<ORBextractor*>(NULL)),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),mbUseORB(false)
 {
     // Frame ID
     mnId=nNextId++;
@@ -375,7 +377,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     //ExtractORB(0,imGray);
     //cout << "ORB feats : " << mDescriptors << endl;
     
-    string strLFNetPath = "/home/yuchao/Data/rgbd_dataset_freiburg1_room/SP/";
+    string strLFNetPath = "/dev/shm/tmpSP/";
     int kpts_num = 1000;//超参数,可以根据情况修改 每张照片提取特征点的个数 1000个,目前是跟ORB本身的个数是一样的.
     mnScaleLevels = 5; //超参数
     float Scale[mnScaleLevels] = {1.41421356, 1.18920712, 1.0, 0.84089642, 0.70710678};
@@ -457,7 +459,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
         std::vector<float> dspt;
         dspt.resize(256);
         for (int j = 0; j < 256; j++)//定义列循环
-	{	
+        {	
             featsfile >> ffeats[i][j];//读取一个值（空格、制表符、换行隔开）就写入到矩阵中，行列不断循环进行
             if(ffeats[i][j] < -0.5)
                 dspt[j] = -0.5;//0
@@ -509,9 +511,64 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     AssignFeaturesToGridLFNet();
 }
 
+//zoe 20190721
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+    :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)), mpLFNETvocabulary(static_cast<LFNETVocabulary*>(NULL)),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth), mbUseORB(true)
+{
+    // Frame ID
+    mnId=nNextId++;
+
+    // Scale Level Info
+    mnScaleLevels = mpORBextractorLeft->GetLevels();
+    mfScaleFactor = mpORBextractorLeft->GetScaleFactor();    
+    mfLogScaleFactor = log(mfScaleFactor);
+    mvScaleFactors = mpORBextractorLeft->GetScaleFactors();
+    mvInvScaleFactors = mpORBextractorLeft->GetInverseScaleFactors();
+    mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
+    mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
+
+    // ORB extraction
+    ExtractORB(0,imGray);
+    
+    N = mvKeys.size();//在这里输出过ORB特征点的数量 >=1000,不会少于1000的
+    
+    if(mvKeys.empty())
+        return;
+
+    UndistortKeyPoints();
+
+    ComputeStereoFromRGBD(imDepth);
+
+    mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
+    mvbOutlier = vector<bool>(N,false);
+
+    // This is done only for the first Frame (or after a change in the calibration)
+    if(mbInitialComputations)
+    {
+        ComputeImageBounds(imGray);
+
+        mfGridElementWidthInv=static_cast<float>(FRAME_GRID_COLS)/static_cast<float>(mnMaxX-mnMinX);
+        mfGridElementHeightInv=static_cast<float>(FRAME_GRID_ROWS)/static_cast<float>(mnMaxY-mnMinY);
+
+        fx = K.at<float>(0,0);
+        fy = K.at<float>(1,1);
+        cx = K.at<float>(0,2);
+        cy = K.at<float>(1,2);
+        invfx = 1.0f/fx;
+        invfy = 1.0f/fy;
+
+        mbInitialComputations=false;
+    }
+
+    mb = mbf/fx;
+
+    AssignFeaturesToGrid();
+}
+
 Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
-     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
+     mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth), mbUseORB(true)
 {
     // Frame ID
     mnId=nNextId++;
@@ -667,8 +724,8 @@ bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
 
     // Predict scale in the image
     const int nPredictedLevel = pMP->PredictScale(dist,this);
-    if (nPredictedLevel!=0)
-        cout << "nPredictedLevel = " << nPredictedLevel << endl;
+    //if (nPredictedLevel!=0)
+    //    cout << "nPredictedLevel = " << nPredictedLevel << endl;
 
     // Data used by the tracking
     pMP->mbTrackInView = true;
@@ -703,7 +760,7 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const f
     if(nMaxCellY<0)
         return vIndices;
     
-    //const bool bCheckLevels = (minLevel>0) || (maxLevel>=0); //zoe 20181021 因为没有level信息,所以只好先屏蔽掉
+    const bool bCheckLevels = (minLevel>0) || (maxLevel>=0); //zoe 20190719 因为没有level信息,所以只好先屏蔽掉
     
     for(int ix = nMinCellX; ix<=nMaxCellX; ix++)
     {
@@ -715,8 +772,12 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const f
             
             for(size_t j=0, jend=vCell.size(); j<jend; j++)
             {
-                const cv::KeyPoint &kpUn = mvKptsUn[vCell[j]];
-                /* //zoe 20181021
+                cv::KeyPoint kpUn;
+                if (mbUseORB)
+                    kpUn = mvKeysUn[vCell[j]];
+                else
+                    kpUn = mvKptsUn[vCell[j]];
+                 //zoe 20190719
                 if(bCheckLevels)
                 {
                     if(kpUn.octave<minLevel)
@@ -727,7 +788,7 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const f
                             continue;
                     
                 }
-                */
+                
                 const float distx = kpUn.pt.x-x;
                 const float disty = kpUn.pt.y-y;
 

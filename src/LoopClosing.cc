@@ -38,7 +38,7 @@ namespace ORB_SLAM2
 LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale):
     mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
     mpKeyFrameDB(pDB), mpORBVocabulary(pVoc), mpMatchedKF(NULL), mLastLoopKFid(0), mbRunningGBA(false), mbFinishedGBA(true),
-    mbStopGBA(false), mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0)
+    mbStopGBA(false), mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL))
 {
     mnCovisibilityConsistencyTh = 3;
 }
@@ -46,7 +46,7 @@ LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, 
 LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, LFNETVocabulary *pVocLFNet, const bool bFixScale):
     mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
     mpKeyFrameDB(pDB), mpLFNETVocabulary(pVocLFNet), mpMatchedKF(NULL), mLastLoopKFid(0), mbRunningGBA(false), mbFinishedGBA(true),
-    mbStopGBA(false), mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0)
+    mbStopGBA(false), mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL))
 {
     mnCovisibilityConsistencyTh = 3;
 }
@@ -145,8 +145,11 @@ bool LoopClosing::DetectLoop()
             continue;
         const DBoW2::BowVector &BowVec = pKF->mBowVec;
 
-        //float score = mpORBVocabulary->score(CurrentBowVec, BowVec);//zoe 
-        float score = mpLFNETVocabulary->score(CurrentBowVec, BowVec);
+        float score = 0;
+        if (mpORBVocabulary)
+            score = mpORBVocabulary->score(CurrentBowVec, BowVec);//zoe 
+        else
+            score = mpLFNETVocabulary->score(CurrentBowVec, BowVec);
         //cout<<"loop score = "<<score<<endl;
 
         if(score<minScore)
@@ -277,9 +280,11 @@ bool LoopClosing::ComputeSim3()
             vbDiscarded[i] = true;
             continue;
         }
-
-        //int nmatches = matcher.SearchByBoW(mpCurrentKF,pKF,vvpMapPointMatches[i]);//zoe 20181017
-        int nmatches = matcher.SearchByBoWLFNet(mpCurrentKF,pKF,vvpMapPointMatches[i]);
+        int nmatches = 0;
+        if (mpORBVocabulary)
+            nmatches = matcher.SearchByBoW(mpCurrentKF,pKF,vvpMapPointMatches[i]);//zoe 20181017
+        else
+            nmatches = matcher.SearchByBoWLFNet(mpCurrentKF,pKF,vvpMapPointMatches[i]);
 
         if(nmatches<20)
         {
@@ -337,8 +342,10 @@ bool LoopClosing::ComputeSim3()
                 cv::Mat R = pSolver->GetEstimatedRotation();
                 cv::Mat t = pSolver->GetEstimatedTranslation();
                 const float s = pSolver->GetEstimatedScale();
-                //matcher.SearchBySim3(mpCurrentKF,pKF,vpMapPointMatches,s,R,t,7.5);// zoe 20181017
-                matcher.SearchBySim3LFNet(mpCurrentKF,pKF,vpMapPointMatches,s,R,t,7.5);
+                if (mpORBVocabulary)
+                    matcher.SearchBySim3(mpCurrentKF,pKF,vpMapPointMatches,s,R,t,7.5);// zoe 20181017
+                else
+                    matcher.SearchBySim3LFNet(mpCurrentKF,pKF,vpMapPointMatches,s,R,t,7.5);
 
                 g2o::Sim3 gScm(Converter::toMatrix3d(R),Converter::toVector3d(t),s);
                 const int nInliers = Optimizer::OptimizeSim3(mpCurrentKF, pKF, vpMapPointMatches, gScm, 10, mbFixScale);
@@ -390,8 +397,10 @@ bool LoopClosing::ComputeSim3()
     }
 
     // Find more matches projecting with the computed Sim3
-    //matcher.SearchByProjection(mpCurrentKF, mScw, mvpLoopMapPoints, mvpCurrentMatchedPoints,10);//zoe 20181017
-    matcher.SearchByProjectionLFNet(mpCurrentKF, mScw, mvpLoopMapPoints, mvpCurrentMatchedPoints,10);
+    if (mpORBVocabulary)
+        matcher.SearchByProjection(mpCurrentKF, mScw, mvpLoopMapPoints, mvpCurrentMatchedPoints,10);//zoe 20181017
+    else
+        matcher.SearchByProjectionLFNet(mpCurrentKF, mScw, mvpLoopMapPoints, mvpCurrentMatchedPoints,10);
 
     // If enough matches accept Loop
     int nTotalMatches = 0;
@@ -554,8 +563,10 @@ void LoopClosing::CorrectLoop()
                 {
                     mpCurrentKF->AddMapPoint(pLoopMP,i);
                     pLoopMP->AddObservation(mpCurrentKF,i);
-                    //pLoopMP->ComputeDistinctiveDescriptors();//zoe 20181017
-                    pLoopMP->ComputeDistinctiveDescriptorsLFNet();
+                    if (mpORBVocabulary)
+                        pLoopMP->ComputeDistinctiveDescriptors();//zoe 20181017
+                    else
+                        pLoopMP->ComputeDistinctiveDescriptorsLFNet();
                 }
             }
         }
@@ -623,7 +634,10 @@ void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap)
         cv::Mat cvScw = Converter::toCvMat(g2oScw);
 
         vector<MapPoint*> vpReplacePoints(mvpLoopMapPoints.size(),static_cast<MapPoint*>(NULL));
-        matcher.FuseLFNet(pKF,cvScw,mvpLoopMapPoints,4,vpReplacePoints);//zoe 20181019
+        if (mpORBVocabulary)
+            matcher.Fuse(pKF,cvScw,mvpLoopMapPoints,4,vpReplacePoints);//zoe 20181019
+        else
+            matcher.FuseLFNet(pKF,cvScw,mvpLoopMapPoints,4,vpReplacePoints);//zoe 20181019
 
         // Get Map Mutex
         unique_lock<mutex> lock(mpMap->mMutexMapUpdate);

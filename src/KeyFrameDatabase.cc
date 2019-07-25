@@ -30,15 +30,15 @@ using namespace std;
 namespace ORB_SLAM2
 {
 //zoe 20181017 
-KeyFrameDatabase::KeyFrameDatabase (const ORBVocabulary &voc):
-    mpVoc(&voc)
+KeyFrameDatabase::KeyFrameDatabase (const ORBVocabulary &voc, const bool bUseORB):
+    mpVoc(&voc), mbUseORB(bUseORB)//zoe 20190719
 {
     mvInvertedFile.resize(voc.size());
 }
 
 //zoe 20181016
-KeyFrameDatabase::KeyFrameDatabase (const LFNETVocabulary &voclfnet):
-    mpVocLFNet(&voclfnet)
+KeyFrameDatabase::KeyFrameDatabase (const LFNETVocabulary &voclfnet, const bool bUseORB):
+    mpVocLFNet(&voclfnet),mbUseORB(bUseORB)//zoe 20190719
 {
     mvInvertedFile.resize(voclfnet.size());// zoe 这里暂时还没有修改
 }
@@ -76,7 +76,10 @@ void KeyFrameDatabase::erase(KeyFrame* pKF)
 void KeyFrameDatabase::clear()
 {
     mvInvertedFile.clear();
-    mvInvertedFile.resize(mpVocLFNet->size());//zoe 20181019
+    if (mbUseORB)
+        mvInvertedFile.resize(mpVoc->size());//zoe 20181019
+    else
+        mvInvertedFile.resize(mpVocLFNet->size());//zoe 20181019
 }
 
 
@@ -136,9 +139,11 @@ vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float mi
         if(pKFi->mnLoopWords>minCommonWords)
         {
             nscores++;
-
-            //float si = mpVoc->score(pKF->mBowVec,pKFi->mBowVec);
-            float si = mpVocLFNet->score(pKF->mBowVec,pKFi->mBowVec);//zoe 20181019
+            float si = 0;
+            if (mbUseORB)
+                si = mpVoc->score(pKF->mBowVec,pKFi->mBowVec);
+            else
+                si = mpVocLFNet->score(pKF->mBowVec,pKFi->mBowVec);//zoe 20181019
 
             pKFi->mLoopScore = si;
             if(si>=minScore)
@@ -254,8 +259,11 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
         if(pKFi->mnRelocWords>minCommonWords)
         {
             nscores++;
-            //float si = mpVoc->score(F->mBowVec,pKFi->mBowVec);//zoe 20181020
-            float si = mpVocLFNet->score(F->mBowVec,pKFi->mBowVec);
+            float si = 0;
+            if (mbUseORB)
+                si = mpVoc->score(F->mBowVec,pKFi->mBowVec);//zoe 20181020
+            else
+                si = mpVocLFNet->score(F->mBowVec,pKFi->mBowVec);
             cout<<"data score = "<<si<<endl;
             pKFi->mRelocScore=si;
             lScoreAndMatch.push_back(make_pair(si,pKFi));

@@ -1,0 +1,14 @@
+shutdown_costmaps: false # 关闭costmap
+
+controller_frequency: 20 # 控制频率 20
+controller_patience: 15.0 # 在空间清理操作执行前,控制器花多长时间等有效控制下发.
+
+planner_frequency: 15.0 # 规划频率,如果设置为0.0,则全局规划器仅接收到新的目标点或者局部规划器报告路径堵塞时才会重新执行规划操作.
+planner_patience: 10.0 # 在空间清理操作执行前,留给规划器多长时间来找出一条有效规划.
+
+oscillation_timeout: 0.0 # 执行修复机制前,允许振荡的时长.
+oscillation_distance: 0.05 # 来回运动在多大距离以上不会被认为是振荡.
+
+recovery_behavior_enabled: false 
+clearing_rotation_allowed: false # 要不要机器人在clear out space时执行一个原地转圈
+prune_plan: false  # 是否消失走过的路径

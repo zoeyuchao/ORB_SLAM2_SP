@@ -168,8 +168,10 @@ void FrameDrawer::Update(Tracking *pTracker)
 {
     unique_lock<mutex> lock(mMutex);
     pTracker->mImGray.copyTo(mIm);
-    //mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;//这里用到特征点 zoe 20181015 没改
-    mvCurrentKeys=pTracker->mCurrentFrame.mvKpts;// zoe 20181016
+    if (pTracker->mCurrentFrame.mpORBvocabulary)
+        mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
+    else
+        mvCurrentKeys=pTracker->mCurrentFrame.mvKpts;// zoe 20181016
     
     N = mvCurrentKeys.size();
     mvbVO = vector<bool>(N,false);
@@ -179,8 +181,10 @@ void FrameDrawer::Update(Tracking *pTracker)
 
     if(pTracker->mLastProcessedState==Tracking::NOT_INITIALIZED)
     {
-        //mvIniKeys=pTracker->mInitialFrame.mvKeys;
-        mvIniKeys=pTracker->mInitialFrame.mvKpts;//zoe 20181016
+        if (pTracker->mInitialFrame.mpORBvocabulary)
+            mvIniKeys=pTracker->mInitialFrame.mvKeys;
+        else
+            mvIniKeys=pTracker->mInitialFrame.mvKpts;//zoe 20181016
         
         mvIniMatches=pTracker->mvIniMatches;
     }

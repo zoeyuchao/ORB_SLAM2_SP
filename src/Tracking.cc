@@ -44,9 +44,9 @@ namespace ORB_SLAM2
 {
 
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc),
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), mbUseORB(true)
 {
     // Load camera parameters from settings file
 
@@ -147,11 +147,117 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     }
 
 }
-//zoe 20181016
-Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet),
+//zoe 20190719
+Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0) //zoe 20190513 tracking参数赋值修改
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(true)
+{
+    // Load camera parameters from settings file
+
+    cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+    float fx = fSettings["Camera.fx"];
+    float fy = fSettings["Camera.fy"];
+    float cx = fSettings["Camera.cx"];
+    float cy = fSettings["Camera.cy"];
+
+    cv::Mat K = cv::Mat::eye(3,3,CV_32F);
+    K.at<float>(0,0) = fx;
+    K.at<float>(1,1) = fy;
+    K.at<float>(0,2) = cx;
+    K.at<float>(1,2) = cy;
+    K.copyTo(mK);
+
+    cv::Mat DistCoef(4,1,CV_32F);
+    DistCoef.at<float>(0) = fSettings["Camera.k1"];
+    DistCoef.at<float>(1) = fSettings["Camera.k2"];
+    DistCoef.at<float>(2) = fSettings["Camera.p1"];
+    DistCoef.at<float>(3) = fSettings["Camera.p2"];
+    const float k3 = fSettings["Camera.k3"];
+    if(k3!=0)
+    {
+        DistCoef.resize(5);
+        DistCoef.at<float>(4) = k3;
+    }
+    DistCoef.copyTo(mDistCoef);
+
+    mbf = fSettings["Camera.bf"];
+
+    float fps = fSettings["Camera.fps"];
+    if(fps==0)
+        fps=30;
+
+    // Max/Min Frames to insert keyframes and to check relocalisation
+    mMinFrames = 0;
+    mMaxFrames = fps;
+
+    cout << endl << "Camera Parameters: " << endl;
+    cout << "- fx: " << fx << endl;
+    cout << "- fy: " << fy << endl;
+    cout << "- cx: " << cx << endl;
+    cout << "- cy: " << cy << endl;
+    cout << "- k1: " << DistCoef.at<float>(0) << endl;
+    cout << "- k2: " << DistCoef.at<float>(1) << endl;
+    if(DistCoef.rows==5)
+        cout << "- k3: " << DistCoef.at<float>(4) << endl;
+    cout << "- p1: " << DistCoef.at<float>(2) << endl;
+    cout << "- p2: " << DistCoef.at<float>(3) << endl;
+    cout << "- fps: " << fps << endl;
+
+
+    int nRGB = fSettings["Camera.RGB"];
+    mbRGB = nRGB;
+
+    if(mbRGB)
+        cout << "- color order: RGB (ignored if grayscale)" << endl;
+    else
+        cout << "- color order: BGR (ignored if grayscale)" << endl;
+
+    // Load ORB parameters
+    //zoe 20181021
+    int nFeatures = fSettings["ORBextractor.nFeatures"];
+    float fScaleFactor = fSettings["ORBextractor.scaleFactor"];
+    int nLevels = fSettings["ORBextractor.nLevels"];
+    int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
+    int fMinThFAST = fSettings["ORBextractor.minThFAST"];
+
+    mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+    if(sensor==System::STEREO)
+        mpORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+    if(sensor==System::MONOCULAR)
+        mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+
+    cout << endl  << "ORB Extractor Parameters: " << endl;
+    cout << "- Number of Features: " << nFeatures << endl;
+    cout << "- Scale Levels: " << nLevels << endl;
+    cout << "- Scale Factor: " << fScaleFactor << endl;
+    cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
+    cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
+    
+    if(sensor==System::STEREO || sensor==System::RGBD)
+    {
+        mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
+        cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
+    }
+
+    if(sensor==System::RGBD)
+    {
+        mDepthMapFactor = fSettings["DepthMapFactor"];
+        if(fabs(mDepthMapFactor)<1e-5)
+            mDepthMapFactor=1;
+        else
+            mDepthMapFactor = 1.0f/mDepthMapFactor;
+    }
+
+}
+
+//zoe 20181016
+Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(false) //zoe 20190513 tracking参数赋值修改
 {
     // Load camera parameters from settings file
 
@@ -252,11 +358,12 @@ Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrame
     }
 
 }
-// zoe 20190520
-Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),
+
+// zoe 20190711
+Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB):
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
     mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0) //zoe 20190513 tracking参数赋值修改
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(bUseORB) //zoe 20190513 tracking参数赋值修改
 {
     // Load camera parameters from settings file
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
@@ -318,28 +425,30 @@ Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawe
         cout << "- color order: BGR (ignored if grayscale)" << endl;
 
     // Load ORB parameters
-    /*
-    int nFeatures = fSettings["ORBextractor.nFeatures"];
-    float fScaleFactor = fSettings["ORBextractor.scaleFactor"];
-    int nLevels = fSettings["ORBextractor.nLevels"];
-    int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
-    int fMinThFAST = fSettings["ORBextractor.minThFAST"];
-    //zoe 20181019
-    mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+    if (bUseORB)
+    {
+        int nFeatures = fSettings["ORBextractor.nFeatures"];
+        float fScaleFactor = fSettings["ORBextractor.scaleFactor"];
+        int nLevels = fSettings["ORBextractor.nLevels"];
+        int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
+        int fMinThFAST = fSettings["ORBextractor.minThFAST"];
+        //zoe 20181019
+        mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
-    if(sensor==System::STEREO)
-        mpORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+        if(sensor==System::STEREO)
+            mpORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
-    if(sensor==System::MONOCULAR)
-        mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
+        if(sensor==System::MONOCULAR)
+            mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
-    cout << endl  << "ORB Extractor Parameters: " << endl;
-    cout << "- Number of Features: " << nFeatures << endl;
-    cout << "- Scale Levels: " << nLevels << endl;
-    cout << "- Scale Factor: " << fScaleFactor << endl;
-    cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
-    cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
-    */
+        cout << endl  << "ORB Extractor Parameters: " << endl;
+        cout << "- Number of Features: " << nFeatures << endl;
+        cout << "- Scale Levels: " << nLevels << endl;
+        cout << "- Scale Factor: " << fScaleFactor << endl;
+        cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
+        cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
+    }
+    
     if(sensor==System::STEREO || sensor==System::RGBD)
     {
         mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
@@ -415,7 +524,8 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
 cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp)
 {
     mImGray = imRGB;
-    cv::Mat imDepth = imD;
+    mImRGB = imRGB;
+    mImDepth = imD;
 
     if(mImGray.channels()==3)
     {
@@ -432,15 +542,22 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
             cvtColor(mImGray,mImGray,CV_BGRA2GRAY);
     }
 
-    if((fabs(mDepthMapFactor-1.0f)>1e-5) || imDepth.type()!=CV_32F)
-        imDepth.convertTo(imDepth,CV_32F,mDepthMapFactor);
+    if((fabs(mDepthMapFactor-1.0f)>1e-5) || mImDepth.type()!=CV_32F)
+        mImDepth.convertTo(mImDepth,CV_32F,mDepthMapFactor);
 
     //mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);// zoe mark
     //zoe 20181016
     if (mpLFNETVocabulary)
-        mCurrentFrame = Frame(mImGray, imDepth, timestamp, mpORBextractorLeft, mpLFNETVocabulary, mK, mDistCoef, mbf, mThDepth);
+        mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mpLFNETVocabulary, mK, mDistCoef, mbf, mThDepth);
+    else if(mpORBVocabulary)
+        mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mpORBVocabulary, mK, mDistCoef, mbf, mThDepth);
     else
-        mCurrentFrame = Frame(mImGray, imDepth, timestamp, mK, mDistCoef, mbf, mThDepth);
+    {
+        if(mbUseORB)
+            mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mK, mDistCoef, mbf, mThDepth);
+        else
+            mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mK, mDistCoef, mbf, mThDepth);            
+    }
     
     Track();
     
@@ -499,9 +616,10 @@ void Tracking::Track()
         }
         else
             MonocularInitialization();
-       
+        
+        
         mpFrameDrawer->Update(this);// 20181015 zoe 这里用到了特征点,还有最小匹配
-       
+        
         if(mState!=OK)
             return;
     }
@@ -533,6 +651,7 @@ void Tracking::Track()
                     if(!bOK)
                         bOK = TrackReferenceKeyFrame();
                 }
+                
             }
             else
             {  
@@ -610,7 +729,7 @@ void Tracking::Track()
                 }
             }
         }
-
+        
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
         
         // If we have an initial estimation of the camera pose and matching. Track the local map.
@@ -618,7 +737,7 @@ void Tracking::Track()
         {
             if(bOK)
             {
-                bOK = TrackLocalMap();//zoe 跟丢是这个模块出问题了
+                bOK = TrackLocalMap();//zoe 跟丢是这个模块出问题了   
             }
         }
         else
@@ -658,7 +777,7 @@ void Tracking::Track()
                 mVelocity = cv::Mat();
 
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
-
+            
             // Clean VO matches
             for(int i=0; i<mCurrentFrame.N; i++)
             {
@@ -678,11 +797,11 @@ void Tracking::Track()
                 delete pMP;
             }
             mlpTemporalPoints.clear();
-
+            
             // Check if we need to insert a new keyframe
             if(NeedNewKeyFrame())
                 CreateNewKeyFrame();
-
+            
             // We allow points with high innovation (considererd outliers by the Huber Function)
             // pass to the new keyframe, so that bundle adjustment will finally decide
             // if they are outliers or not. We don't want next frame to estimate its position
@@ -711,7 +830,6 @@ void Tracking::Track()
 
         mLastFrame = Frame(mCurrentFrame);
     }
-
     // Store frame pose information to retrieve the complete camera trajectory afterwards.
     if(!mCurrentFrame.mTcw.empty())
     {
@@ -744,6 +862,7 @@ void Tracking::StereoInitialization()
 
         // Create KeyFrame
         KeyFrame* pKFini;
+
         if (mpKeyFrameDB)
             pKFini = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
         else
@@ -761,20 +880,27 @@ void Tracking::StereoInitialization()
             float z = mCurrentFrame.mvDepth[i];
             if(z>0)
             {
-                //cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);//zoe 20181016
-                cv::Mat x3D = mCurrentFrame.UnprojectStereoLFNet(i);
+                cv::Mat x3D;
+
+                if (mbUseORB)
+                    x3D = mCurrentFrame.UnprojectStereo(i);//zoe 20181016
+                else
+                    x3D = mCurrentFrame.UnprojectStereoLFNet(i);
                 
                 MapPoint* pNewMP = new MapPoint(x3D,pKFini,mpMap);
                 pNewMP->AddObservation(pKFini,i);
                 pKFini->AddMapPoint(pNewMP,i);
-                //pNewMP->ComputeDistinctiveDescriptors();// zoe 20181016 20181017
-                
-                pNewMP->ComputeDistinctiveDescriptorsLFNet();
+
+                if (mbUseORB)
+                    pNewMP->ComputeDistinctiveDescriptors();// zoe 20181016 20181017
+                else
+                    pNewMP->ComputeDistinctiveDescriptorsLFNet();
                 
                 pNewMP->UpdateNormalAndDepth();
                 mpMap->AddMapPoint(pNewMP);
 
                 mCurrentFrame.mvpMapPoints[i]=pNewMP;
+                
             }
         }
 
@@ -783,8 +909,12 @@ void Tracking::StereoInitialization()
             mpLocalMapper->InsertKeyFrame(pKFini);
         else
         {
-            pKFini->ComputeBoWLFNet();// zoe 20190513
+            if (mbUseORB)
+                pKFini->ComputeBoW();// zoe 20190513
+            else
+                pKFini->ComputeBoWLFNet();// zoe 20190513
         }
+
         mLastFrame = Frame(mCurrentFrame);
         mnLastKeyFrameId=mCurrentFrame.mnId;
         mpLastKeyFrame = pKFini;
@@ -841,8 +971,12 @@ void Tracking::MonocularInitialization()
 
         // Find correspondences
         ORBmatcher matcher(0.9,true);
-        //int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);// zoe 20181017
-        int nmatches = matcher.SearchForInitializationLFNet(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
+
+        int nmatches = 0;
+        if (mbUseORB)
+            nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);// zoe 20181017
+        else
+            nmatches = matcher.SearchForInitializationLFNet(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
         
         // Check if there are enough correspondences
         if(nmatches<100)
@@ -885,10 +1019,16 @@ void Tracking::CreateInitialMapMonocular()
     KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap,mpKeyFrameDB);
     KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
 
-
-    pKFini->ComputeBoWLFNet();//zoe 20181017
-    pKFcur->ComputeBoWLFNet();//zoe 20181017
-
+    if (mbUseORB)
+    {
+        pKFini->ComputeBoW();//zoe 20181017
+        pKFcur->ComputeBoW();//zoe 20181017
+    }
+    else
+    {
+        pKFini->ComputeBoWLFNet();//zoe 20181017
+        pKFcur->ComputeBoWLFNet();//zoe 20181017
+    }
     // Insert KFs in the map
     mpMap->AddKeyFrame(pKFini);
     mpMap->AddKeyFrame(pKFcur);
@@ -909,9 +1049,12 @@ void Tracking::CreateInitialMapMonocular()
 
         pMP->AddObservation(pKFini,i);
         pMP->AddObservation(pKFcur,mvIniMatches[i]);
+       
+        if (mbUseORB)
+            pMP->ComputeDistinctiveDescriptors();//zoe 20181017
+        else
+            pMP->ComputeDistinctiveDescriptorsLFNet();
 
-        //pMP->ComputeDistinctiveDescriptors();//zoe 20181017
-        pMP->ComputeDistinctiveDescriptorsLFNet();
         pMP->UpdateNormalAndDepth();
 
         //Fill Current Frame structure
@@ -1005,18 +1148,24 @@ void Tracking::CheckReplacedInLastFrame()
 bool Tracking::TrackReferenceKeyFrame()
 {
     // Compute Bag of Words vector
-    //mCurrentFrame.ComputeBoW();//zoe 20181016
-    mCurrentFrame.ComputeBoWLFNet();
-
+    if (mbUseORB)
+        mCurrentFrame.ComputeBoW();//zoe 20181016
+    else
+        mCurrentFrame.ComputeBoWLFNet();
+    
     // We perform first an ORB matching with the reference keyframe
     // If enough matches are found we setup a PnP solver
     
     ORBmatcher matcher(0.7,true);
     vector<MapPoint*> vpMapPointMatches;
 
-    //int nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
+    
     int nmatches = 0;
-    if (mpLFNETVocabulary)
+    if (mpORBVocabulary)
+    {
+        nmatches = matcher.SearchByBoW(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
+    }
+    else if (mpLFNETVocabulary)
     {
         nmatches = matcher.SearchByBoWLFNet(mpReferenceKF,mCurrentFrame,vpMapPointMatches);//zoe 20181017
     }
@@ -1108,8 +1257,11 @@ void Tracking::UpdateLastFrame()
 
         if(bCreateNew)
         {
-            //cv::Mat x3D = mLastFrame.UnprojectStereo(i);// zoe 20181016
-            cv::Mat x3D = mLastFrame.UnprojectStereoLFNet(i);
+            cv::Mat x3D;
+            if (mbUseORB)
+                x3D = mLastFrame.UnprojectStereo(i);// zoe 20181016
+            else
+                x3D = mLastFrame.UnprojectStereoLFNet(i);
             MapPoint* pNewMP = new MapPoint(x3D,mpMap,&mLastFrame,i);
 
             mLastFrame.mvpMapPoints[i]=pNewMP;
@@ -1145,16 +1297,21 @@ bool Tracking::TrackWithMotionModel()
         th=15;
     else
         th=7;
-    
-    //int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);//zoe 20181017
-    int nmatches = matcher.SearchByProjectionLFNet(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
+
+    int nmatches = 0;
+    if (mbUseORB)
+        nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);//zoe 20181017
+    else
+        nmatches = matcher.SearchByProjectionLFNet(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
     
     // If few matches, uses a wider window search
     if(nmatches<20)
     {
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
-        //nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);//zoe 20181017
-        nmatches = matcher.SearchByProjectionLFNet(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
+        if (mbUseORB)
+            nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);//zoe 20181017
+        else
+            nmatches = matcher.SearchByProjectionLFNet(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
     }
     
     if(nmatches<20)
@@ -1387,13 +1544,20 @@ void Tracking::CreateNewKeyFrame()
 
                 if(bCreateNew)
                 {
-                    //cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);//zoe 20181017
-                    cv::Mat x3D = mCurrentFrame.UnprojectStereoLFNet(i);
+                    
+                    cv::Mat x3D;
+                    if (mbUseORB)
+                        x3D = mCurrentFrame.UnprojectStereo(i);//zoe 20181017
+                    else
+                        x3D = mCurrentFrame.UnprojectStereoLFNet(i);
+
                     MapPoint* pNewMP = new MapPoint(x3D,pKF,mpMap);
                     pNewMP->AddObservation(pKF,i);
                     pKF->AddMapPoint(pNewMP,i);
-                    //pNewMP->ComputeDistinctiveDescriptors();//zoe20181017
-                    pNewMP->ComputeDistinctiveDescriptorsLFNet();
+                    if (mbUseORB)
+                        pNewMP->ComputeDistinctiveDescriptors();//zoe20181017
+                    else
+                        pNewMP->ComputeDistinctiveDescriptorsLFNet();
                     pNewMP->UpdateNormalAndDepth();
                     mpMap->AddMapPoint(pNewMP);
 
@@ -1410,18 +1574,24 @@ void Tracking::CreateNewKeyFrame()
             }
         }
     }
+    
     if (mpLocalMapper)
     {
         mpLocalMapper->InsertKeyFrame(pKF);
+        
         mpLocalMapper->SetNotStop(false);
     }
     else
     {
-        pKF->ComputeBoWLFNet();//zoe 20190513
+        if (mbUseORB)
+            pKF->ComputeBoW();//zoe 20190513
+        else
+            pKF->ComputeBoWLFNet();//zoe 20190513
         // Insert Keyframe in Map
         mpMap->AddKeyFrame(pKF);   
     }
-
+    //zoe 20190711 
+    mpPointCloudMapping->insertKeyFrame( pKF, this->mImRGB, this->mImDepth);
     mnLastKeyFrameId = mCurrentFrame.mnId;
     mpLastKeyFrame = pKF;
 }
@@ -1476,8 +1646,12 @@ void Tracking::SearchLocalPoints()
         // If the camera has been relocalised recently, perform a coarser search
         if(mCurrentFrame.mnId<mnLastRelocFrameId+2)
             th=5;
-        //matcher.SearchByProjection(mCurrentFrame,mvpLocalMapPoints,th);//zoe 20181017
-        matcher.SearchByProjectionLFNet(mCurrentFrame,mvpLocalMapPoints,th);  
+        
+        if (mbUseORB)
+            matcher.SearchByProjection(mCurrentFrame,mvpLocalMapPoints,th);//zoe 20181017
+        else
+            matcher.SearchByProjectionLFNet(mCurrentFrame,mvpLocalMapPoints,th);  
+        
     }
     
 }
@@ -1631,8 +1805,10 @@ void Tracking::UpdateLocalKeyFrames()
 bool Tracking::Relocalization()
 {
     // Compute Bag of Words Vector
-    //mCurrentFrame.ComputeBoW();// zoe 20181016
-    mCurrentFrame.ComputeBoWLFNet();
+    if (mbUseORB)
+        mCurrentFrame.ComputeBoW();// zoe 20181016
+    else
+        mCurrentFrame.ComputeBoWLFNet();
 
     // Relocalization is performed when tracking is lost
     // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
@@ -1670,8 +1846,11 @@ bool Tracking::Relocalization()
                 vbDiscarded[i] = true;
             else
             {
-                //int nmatches = matcher.SearchByBoW(pKF,mCurrentFrame,vvpMapPointMatches[i]);//zoe 20181017
-                int nmatches = matcher.SearchByBoWLFNet(pKF,mCurrentFrame,vvpMapPointMatches[i]);
+                int nmatches = 0;
+                if (mbUseORB)
+                    nmatches = matcher.SearchByBoW(pKF,mCurrentFrame,vvpMapPointMatches[i]);//zoe 20181017
+                else
+                    nmatches = matcher.SearchByBoWLFNet(pKF,mCurrentFrame,vvpMapPointMatches[i]);
                 
                 if(nmatches<15)
                 {
@@ -1748,9 +1927,13 @@ bool Tracking::Relocalization()
                     // If few inliers, search by projection in a coarse window and optimize again
                     if(nGood<50)
                     {
-                        //int nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);//zoe 20181017
+                        
                         const float FLOAT_MAX=5.0;//zoe
-                        int nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,FLOAT_MAX/2);
+                        int nadditional = 0;
+                        if (mbUseORB)
+                            nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);//zoe 20181017
+                        else
+                            nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,FLOAT_MAX/2);
                         
                         if(nadditional+nGood>=50)
                         {
@@ -1764,8 +1947,10 @@ bool Tracking::Relocalization()
                                 for(int ip =0; ip<mCurrentFrame.N; ip++)
                                     if(mCurrentFrame.mvpMapPoints[ip])
                                         sFound.insert(mCurrentFrame.mvpMapPoints[ip]);
-                                //nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20181017
-                                nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,FLOAT_MAX/6);
+                                if (mbUseORB)
+                                    nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20181017
+                                else
+                                    nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,FLOAT_MAX/6);
 
                                 // Final optimization
                                 if(nGood+nadditional>=50)
@@ -1824,8 +2009,11 @@ bool Tracking::Relocalization()
                 vbDiscarded[i] = true;
             else
             {
-                //int nmatches = matcher.SearchByBoW(pKF,mCurrentFrame,vvpMapPointMatches[i]);//zoe 20181017
-                int nmatches = matcher.SearchByBFLFNet(pKF,mCurrentFrame,vvpMapPointMatches[i]);
+                int nmatches = 0;
+                if (mbUseORB)
+                    nmatches = matcher.SearchByBoW(pKF,mCurrentFrame,vvpMapPointMatches[i]);//zoe 20181017
+                else
+                    nmatches = matcher.SearchByBFLFNet(pKF,mCurrentFrame,vvpMapPointMatches[i]);
                 
                 if(nmatches<15)
                 {
@@ -1902,9 +2090,15 @@ bool Tracking::Relocalization()
                     // If few inliers, search by projection in a coarse window and optimize again
                     if(nGood<50)
                     {
-                        //int nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);//zoe 20181017
+                        
                         const float FLOAT_MAX=5.0;//zoe
-                        int nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,FLOAT_MAX/2);
+
+                        int nadditional = 0;
+
+                        if (mbUseORB)
+                            nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);//zoe 20181017
+                        else
+                            nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,FLOAT_MAX/2);
                         
                         if(nadditional+nGood>=50)
                         {
@@ -1918,8 +2112,11 @@ bool Tracking::Relocalization()
                                 for(int ip =0; ip<mCurrentFrame.N; ip++)
                                     if(mCurrentFrame.mvpMapPoints[ip])
                                         sFound.insert(mCurrentFrame.mvpMapPoints[ip]);
-                                //nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20181017
-                                nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,FLOAT_MAX/6);
+                                        
+                                if (mbUseORB)
+                                    nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20181017
+                                else
+                                    nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,FLOAT_MAX/6);
 
                                 // Final optimization
                                 if(nGood+nadditional>=50)

@@ -28,9 +28,9 @@
 namespace ORB_SLAM2
 {
 
-LocalMapping::LocalMapping(Map *pMap, const float bMonocular):
+LocalMapping::LocalMapping(Map *pMap, const float bMonocular, const bool bUseORB):
     mbMonocular(bMonocular), mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
-    mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true)
+    mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbNotStop(false), mbAcceptKeyFrames(true), mbUseORB(bUseORB)//zoe 20190719
 {
 }
 
@@ -108,7 +108,7 @@ void LocalMapping::Run()
         if(CheckFinish())
             break;
         
-        usleep(3000);    
+        usleep(3000);   
     }
 
     SetFinish();
@@ -137,9 +137,10 @@ void LocalMapping::ProcessNewKeyFrame()
     }
 
     // Compute Bags of Words structures
-    //mpCurrentKeyFrame->ComputeBoW();//zoe 20182016
-    
-    mpCurrentKeyFrame->ComputeBoWLFNet();
+    if (mbUseORB)
+        mpCurrentKeyFrame->ComputeBoW();//zoe 20182016
+    else
+        mpCurrentKeyFrame->ComputeBoWLFNet();
     
     // Associate MapPoints to the new keyframe and update normal and descriptor
     const vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
@@ -155,8 +156,10 @@ void LocalMapping::ProcessNewKeyFrame()
                 {
                     pMP->AddObservation(mpCurrentKeyFrame, i);
                     pMP->UpdateNormalAndDepth();
-                    //pMP->ComputeDistinctiveDescriptors();//zoe 20181017
-                    pMP->ComputeDistinctiveDescriptorsLFNet();
+                    if (mbUseORB)
+                        pMP->ComputeDistinctiveDescriptors();//zoe 20181017
+                    else
+                        pMP->ComputeDistinctiveDescriptorsLFNet();
                 }
                 else // this can only happen for new stereo points inserted by the Tracking
                 {
@@ -272,8 +275,10 @@ void LocalMapping::CreateNewMapPoints()
 
         // Search matches that fullfil epipolar constraint
         vector<pair<size_t,size_t> > vMatchedIndices;
-        //matcher.SearchForTriangulation(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);//zoe 20181017
-        matcher.SearchForTriangulationLFNet(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);
+        if (mbUseORB)
+            matcher.SearchForTriangulation(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);//zoe 20181017
+        else
+            matcher.SearchForTriangulationLFNet(mpCurrentKeyFrame,pKF2,F12,vMatchedIndices,false);
 
         cv::Mat Rcw2 = pKF2->GetRotation();
         cv::Mat Rwc2 = Rcw2.t();
@@ -296,13 +301,21 @@ void LocalMapping::CreateNewMapPoints()
             const int &idx1 = vMatchedIndices[ikp].first;
             const int &idx2 = vMatchedIndices[ikp].second;
 
-            //const cv::KeyPoint &kp1 = mpCurrentKeyFrame->mvKeysUn[idx1];// zoe 20181016 改
-            const cv::KeyPoint &kp1 = mpCurrentKeyFrame->mvKptsUn[idx1];
+            cv::KeyPoint kp1;
+            if (mbUseORB)
+                kp1 = mpCurrentKeyFrame->mvKeysUn[idx1];// zoe 20181016 改
+            else
+                kp1 = mpCurrentKeyFrame->mvKptsUn[idx1];
+
             const float kp1_ur=mpCurrentKeyFrame->mvuRight[idx1];
             bool bStereo1 = kp1_ur>=0;
 
-            //const cv::KeyPoint &kp2 = pKF2->mvKeysUn[idx2];// zoe 20181016
-            const cv::KeyPoint &kp2 = pKF2->mvKptsUn[idx2];
+            cv::KeyPoint kp2;
+            if (mbUseORB)
+                kp2 = pKF2->mvKeysUn[idx2];// zoe 20181016
+            else
+                kp2 = pKF2->mvKptsUn[idx2];
+
             const float kp2_ur = pKF2->mvuRight[idx2];
             bool bStereo2 = kp2_ur>=0;
 
@@ -349,13 +362,17 @@ void LocalMapping::CreateNewMapPoints()
             }
             else if(bStereo1 && cosParallaxStereo1<cosParallaxStereo2)
             {
-                //x3D = mpCurrentKeyFrame->UnprojectStereo(idx1);
-                x3D = mpCurrentKeyFrame->UnprojectStereoLFNet(idx1);// zoe 20181016                
+                if (mbUseORB)
+                    x3D = mpCurrentKeyFrame->UnprojectStereo(idx1);
+                else
+                    x3D = mpCurrentKeyFrame->UnprojectStereoLFNet(idx1);// zoe 20181016                
             }
             else if(bStereo2 && cosParallaxStereo2<cosParallaxStereo1)
             {
-                //x3D = pKF2->UnprojectStereo(idx2);//zoe 20181016
-                x3D = pKF2->UnprojectStereoLFNet(idx2);
+                if (mbUseORB)
+                    x3D = pKF2->UnprojectStereo(idx2);//zoe 20181016
+                else
+                    x3D = pKF2->UnprojectStereoLFNet(idx2);
             }
             else
                 continue; //No stereo and very low parallax
@@ -451,8 +468,10 @@ void LocalMapping::CreateNewMapPoints()
             mpCurrentKeyFrame->AddMapPoint(pMP,idx1);
             pKF2->AddMapPoint(pMP,idx2);
 
-            //pMP->ComputeDistinctiveDescriptors();//zoe 20181017
-            pMP->ComputeDistinctiveDescriptorsLFNet();
+            if (mbUseORB)
+                pMP->ComputeDistinctiveDescriptors();//zoe 20181017
+            else
+                pMP->ComputeDistinctiveDescriptorsLFNet();
 
             pMP->UpdateNormalAndDepth();
 
@@ -499,8 +518,10 @@ void LocalMapping::SearchInNeighbors()
     {
         KeyFrame* pKFi = *vit;
 
-        //matcher.Fuse(pKFi,vpMapPointMatches);//zoe 20181017
-        matcher.FuseLFNet(pKFi,vpMapPointMatches);
+        if (mbUseORB)
+            matcher.Fuse(pKFi,vpMapPointMatches);//zoe 20181017
+        else
+            matcher.FuseLFNet(pKFi,vpMapPointMatches);
     }
 
     // Search matches by projection from target KFs in current KF
@@ -525,8 +546,10 @@ void LocalMapping::SearchInNeighbors()
         }
     }
 
-    //matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates);//zoe 20181017
-    matcher.FuseLFNet(mpCurrentKeyFrame,vpFuseCandidates);
+    if (mbUseORB)
+        matcher.Fuse(mpCurrentKeyFrame,vpFuseCandidates);//zoe 20181017
+    else
+        matcher.FuseLFNet(mpCurrentKeyFrame,vpFuseCandidates);
 
 
     // Update points
@@ -538,8 +561,10 @@ void LocalMapping::SearchInNeighbors()
         {
             if(!pMP->isBad())
             {
-                //pMP->ComputeDistinctiveDescriptors();//zoe 20181017
-                pMP->ComputeDistinctiveDescriptorsLFNet();
+                if (mbUseORB)
+                    pMP->ComputeDistinctiveDescriptors();//zoe 20181017
+                else
+                    pMP->ComputeDistinctiveDescriptorsLFNet();
                 pMP->UpdateNormalAndDepth();
             }
         }
@@ -680,8 +705,11 @@ void LocalMapping::KeyFrameCulling()
                     nMPs++;
                     if(pMP->Observations()>thObs)
                     {
-                        //const int &scaleLevel = pKF->mvKeysUn[i].octave;// zoe 20181018
-                        const int &scaleLevel = pKF->mvKptsUn[i].octave;
+                        int scaleLevel;
+                        if (mbUseORB)
+                            scaleLevel = pKF->mvKeysUn[i].octave;// zoe 20181018
+                        else
+                            scaleLevel = pKF->mvKptsUn[i].octave;
                         const map<KeyFrame*, size_t> observations = pMP->GetObservations();
                         int nObs=0;
                         for(map<KeyFrame*, size_t>::const_iterator mit=observations.begin(), mend=observations.end(); mit!=mend; mit++)
@@ -689,8 +717,11 @@ void LocalMapping::KeyFrameCulling()
                             KeyFrame* pKFi = mit->first;
                             if(pKFi==pKF)
                                 continue;
-                            //const int &scaleLeveli = pKFi->mvKeysUn[mit->second].octave;// zoe 20181018
-                            const int &scaleLeveli = pKFi->mvKptsUn[mit->second].octave;
+                            int scaleLeveli;
+                            if (mbUseORB)
+                                scaleLeveli = pKFi->mvKeysUn[mit->second].octave;// zoe 20181018
+                            else
+                                scaleLeveli = pKFi->mvKptsUn[mit->second].octave;
                             if(scaleLeveli<=scaleLevel+1)// zoe 20181021 这里是个trick
                             {
                                 nObs++;

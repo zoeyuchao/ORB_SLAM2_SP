@@ -111,8 +111,12 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
 
             nEdges++;
 
-            //const cv::KeyPoint &kpUn = pKF->mvKeysUn[mit->second];//zoe 20181018
-            const cv::KeyPoint &kpUn = pKF->mvKptsUn[mit->second];
+            cv::KeyPoint kpUn;
+            if (pKF->mbUseORB)
+                kpUn = pKF->mvKeysUn[mit->second];//zoe 20181018
+            else
+                kpUn = pKF->mvKptsUn[mit->second];
+
             if(pKF->mvuRight[mit->second]<0)
             {
                 Eigen::Matrix<double,2,1> obs;
@@ -289,8 +293,13 @@ int Optimizer::PoseOptimization(Frame *pFrame)
                 pFrame->mvbOutlier[i] = false;
 
                 Eigen::Matrix<double,2,1> obs;
-                //const cv::KeyPoint &kpUn = pFrame->mvKeysUn[i];//zoe 20181018
-                const cv::KeyPoint &kpUn = pFrame->mvKptsUn[i];
+
+                cv::KeyPoint kpUn;
+                if (pFrame->mbUseORB)
+                    kpUn = pFrame->mvKeysUn[i];//zoe 20181018
+                else
+                    kpUn = pFrame->mvKptsUn[i];
+
                 obs << kpUn.pt.x, kpUn.pt.y;
 
                 g2o::EdgeSE3ProjectXYZOnlyPose* e = new g2o::EdgeSE3ProjectXYZOnlyPose();
@@ -325,8 +334,12 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
                 //SET EDGE
                 Eigen::Matrix<double,3,1> obs;
-                //const cv::KeyPoint &kpUn = pFrame->mvKeysUn[i];//zoe 20181018
-                const cv::KeyPoint &kpUn = pFrame->mvKptsUn[i];
+                cv::KeyPoint kpUn;
+                if (pFrame->mbUseORB)
+                    kpUn = pFrame->mvKeysUn[i];//zoe 20181018
+                else
+                    kpUn = pFrame->mvKptsUn[i];
+
                 const float &kp_ur = pFrame->mvuRight[i];
                 obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
 
@@ -590,8 +603,12 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
 
             if(!pKFi->isBad())
             {                
-                //const cv::KeyPoint &kpUn = pKFi->mvKeysUn[mit->second];//zoe 20181018
-                const cv::KeyPoint &kpUn = pKFi->mvKptsUn[mit->second];
+                cv::KeyPoint kpUn;
+                if (pKFi->mbUseORB)
+                    kpUn = pKFi->mvKeysUn[mit->second];//zoe 20181018
+                else
+                    kpUn = pKFi->mvKptsUn[mit->second];
+
                 // Monocular observation
                 if(pKFi->mvuRight[mit->second]<0)
                 {
@@ -1141,8 +1158,13 @@ int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &
 
         // Set edge x1 = S12*X2
         Eigen::Matrix<double,2,1> obs1;
-        //const cv::KeyPoint &kpUn1 = pKF1->mvKeysUn[i];//zoe 20181018
-        const cv::KeyPoint &kpUn1 = pKF1->mvKptsUn[i];
+
+        cv::KeyPoint kpUn1;
+        if (pKF1->mbUseORB)
+            kpUn1 = pKF1->mvKeysUn[i];//zoe 20181018
+        else
+            kpUn1 = pKF1->mvKptsUn[i];
+
         obs1 << kpUn1.pt.x, kpUn1.pt.y;
 
         g2o::EdgeSim3ProjectXYZ* e12 = new g2o::EdgeSim3ProjectXYZ();
@@ -1159,8 +1181,13 @@ int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &
 
         // Set edge x2 = S21*X1
         Eigen::Matrix<double,2,1> obs2;
-        //const cv::KeyPoint &kpUn2 = pKF2->mvKeysUn[i2];//zoe 20181018
-        const cv::KeyPoint &kpUn2 = pKF2->mvKptsUn[i2];
+
+        cv::KeyPoint kpUn2;
+        if (pKF2->mbUseORB)
+            kpUn2 = pKF2->mvKeysUn[i2];//zoe 20181018
+        else
+            kpUn2 = pKF2->mvKptsUn[i2];
+
         obs2 << kpUn2.pt.x, kpUn2.pt.y;
 
         g2o::EdgeInverseSim3ProjectXYZ* e21 = new g2o::EdgeInverseSim3ProjectXYZ();

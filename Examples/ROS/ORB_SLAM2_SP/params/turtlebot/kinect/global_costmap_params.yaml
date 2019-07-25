@@ -1,0 +1,11 @@
+global_costmap:
+   map_topic: /projected_map  # 机器人和地图之间的坐标变换
+   global_frame: /map # 
+   robot_base_frame: /base_link1
+   update_frequency: 2 #地图更新的频率
+   publish_frequency: 1 #地图发布的频率
+   static_map: true # 是否使用静态地图
+   transform_tolerance: 3 #数据可以容忍延迟到达的时间
+   resolution: 0.05
+   inflation_radius: 0.1 # 障碍物的膨胀参数，也就是机器人应该与障碍物保持的最小安全距离，这里设置为0.1意为为机器人规划的路径应该与机器人保持0.1米以上的安全距离。
+   cost_scaling_factor: 2.58 #膨胀过程中应用到代价值的比例因子,增大减少半径 2.0

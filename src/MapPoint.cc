@@ -33,8 +33,10 @@ MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
     mnFirstKFid(pRefKF->mnId), mnFirstFrame(pRefKF->mnFrameId), nObs(0), mnTrackReferenceForFrame(0),
     mnLastFrameSeen(0), mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
     mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(pRefKF), mnVisible(1), mnFound(1), mbBad(false),
-    mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mpMap(pMap)
+    mpReplaced(static_cast<MapPoint*>(NULL)), mfMinDistance(0), mfMaxDistance(0), mpMap(pMap), mbUseORB(false)
 {
+    mbUseORB = pRefKF->mbUseORB;
+
     Pos.copyTo(mWorldPos);
     mNormalVector = cv::Mat::zeros(3,1,CV_32F);
 
@@ -47,8 +49,10 @@ MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF
     mnFirstKFid(-1), mnFirstFrame(pFrame->mnId), nObs(0), mnTrackReferenceForFrame(0), mnLastFrameSeen(0),
     mnBALocalForKF(0), mnFuseCandidateForKF(0),mnLoopPointForKF(0), mnCorrectedByKF(0),
     mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(static_cast<KeyFrame*>(NULL)), mnVisible(1),
-    mnFound(1), mbBad(false), mpReplaced(NULL), mpMap(pMap)
+    mnFound(1), mbBad(false), mpReplaced(NULL), mpMap(pMap), mbUseORB(false)
 {
+    mbUseORB = pFrame->mbUseORB;
+
     Pos.copyTo(mWorldPos);
     cv::Mat Ow = pFrame->GetCameraCenter();
     mNormalVector = mWorldPos - Ow;
@@ -56,16 +60,23 @@ MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF
 
     cv::Mat PC = Pos - Ow;
     const float dist = cv::norm(PC);
-    //const int level = pFrame->mvKeysUn[idxF].octave;//zoe 20181018
-    const int level = pFrame->mvKptsUn[idxF].octave;
+
+    int level;
+    if (mbUseORB)
+        level = pFrame->mvKeysUn[idxF].octave;//zoe 20181018
+    else
+        level = pFrame->mvKptsUn[idxF].octave;
+
     const float levelScaleFactor =  pFrame->mvScaleFactors[level];
     const int nLevels = pFrame->mnScaleLevels;
 
     mfMaxDistance = dist*levelScaleFactor;
     mfMinDistance = mfMaxDistance/pFrame->mvScaleFactors[nLevels-1];
 
-    //pFrame->mDescriptors.row(idxF).copyTo(mDescriptor);//zoe 20181017
-    mvDspt = pFrame->mvDspts[idxF];// zoe 这里可能有错,不知道是取地址还是直接赋值
+    if (mbUseORB)
+        pFrame->mDescriptors.row(idxF).copyTo(mDescriptor);//zoe 20181017
+    else
+        mvDspt = pFrame->mvDspts[idxF];// zoe 这里可能有错,不知道是取地址还是直接赋值
 
     // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
     unique_lock<mutex> lock(mpMap->mMutexPointCreation);
@@ -211,8 +222,10 @@ void MapPoint::Replace(MapPoint* pMP)
     }
     pMP->IncreaseFound(nfound);
     pMP->IncreaseVisible(nvisible);
-    //pMP->ComputeDistinctiveDescriptors();///zoe 20181017
-    pMP->ComputeDistinctiveDescriptorsLFNet();
+    if (mbUseORB)
+        pMP->ComputeDistinctiveDescriptors();///zoe 20181017
+    else
+        pMP->ComputeDistinctiveDescriptorsLFNet();
 
     mpMap->EraseMapPoint(this);
 }
@@ -438,8 +451,13 @@ void MapPoint::UpdateNormalAndDepth()
 
     cv::Mat PC = Pos - pRefKF->GetCameraCenter();
     const float dist = cv::norm(PC);
-    //const int level = pRefKF->mvKeysUn[observations[pRefKF]].octave;//zoe 20181018
-    const int level = pRefKF->mvKptsUn[observations[pRefKF]].octave;//
+    
+    int level;
+    if (mbUseORB)
+        level = pRefKF->mvKeysUn[observations[pRefKF]].octave;//zoe 20181018
+    else
+        level = pRefKF->mvKptsUn[observations[pRefKF]].octave;
+
     const float levelScaleFactor =  pRefKF->mvScaleFactors[level];
     const int nLevels = pRefKF->mnScaleLevels;
 
@@ -470,6 +488,8 @@ int MapPoint::PredictScale(const float &currentDist, KeyFrame* pKF)
         unique_lock<mutex> lock(mMutexPos);
         ratio = mfMaxDistance/currentDist;
     }
+    if (pKF->mfLogScaleFactor == 0)
+        return 0;
 
     int nScale = ceil(log(ratio)/pKF->mfLogScaleFactor);
     if(nScale<0)
@@ -487,8 +507,11 @@ int MapPoint::PredictScale(const float &currentDist, Frame* pF)
         unique_lock<mutex> lock(mMutexPos);
         ratio = mfMaxDistance/currentDist;
     }
+    if (pF->mfLogScaleFactor == 0)
+        return 0;
 
     int nScale = ceil(log(ratio)/pF->mfLogScaleFactor);
+
     if(nScale<0)
         nScale = 0;
     else if(nScale>=pF->mnScaleLevels)

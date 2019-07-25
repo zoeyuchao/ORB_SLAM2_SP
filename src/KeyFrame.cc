@@ -41,7 +41,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     mvInvLevelSigma2(F.mvInvLevelSigma2), mnMinX(F.mnMinX), mnMinY(F.mnMinY), mnMaxX(F.mnMaxX),
     mnMaxY(F.mnMaxY), mK(F.mK), mvpMapPoints(F.mvpMapPoints), mpKeyFrameDB(pKFDB),
     mpORBvocabulary(F.mpORBvocabulary),mpLFNETvocabulary(F.mpLFNETvocabulary), mbFirstConnection(true), mpParent(NULL), mbNotErase(false),//zoe 20181016
-    mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap)
+    mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap), mbUseORB(F.mbUseORB)//zoe 20190721
 {
     mnId=nNextId++;
 
@@ -69,7 +69,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap):
     mvInvLevelSigma2(F.mvInvLevelSigma2), mnMinX(F.mnMinX), mnMinY(F.mnMinY), mnMaxX(F.mnMaxX),
     mnMaxY(F.mnMaxY), mK(F.mK), mvpMapPoints(F.mvpMapPoints), mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)),
     mpORBvocabulary(F.mpORBvocabulary),mpLFNETvocabulary(F.mpLFNETvocabulary), mbFirstConnection(true), mpParent(NULL), mbNotErase(false),//zoe 20181016
-    mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap)
+    mbToBeErased(false), mbBad(false), mHalfBaseline(F.mb/2), mpMap(pMap), mbUseORB(F.mbUseORB)//zoe 20190721
 {
     mnId=nNextId++;
 
@@ -633,8 +633,13 @@ vector<size_t> KeyFrame::GetFeaturesInArea(const float &x, const float &y, const
             const vector<size_t> vCell = mGrid[ix][iy];
             for(size_t j=0, jend=vCell.size(); j<jend; j++)
             {
-                //const cv::KeyPoint &kpUn = mvKeysUn[vCell[j]];//zoe20181020
-                const cv::KeyPoint &kpUn = mvKptsUn[vCell[j]];
+                cv::KeyPoint kpUn;
+
+                if (mbUseORB)
+                    kpUn = mvKeysUn[vCell[j]];//zoe20181020
+                else
+                    kpUn = mvKptsUn[vCell[j]];
+                
                 const float distx = kpUn.pt.x-x;
                 const float disty = kpUn.pt.y-y;
 

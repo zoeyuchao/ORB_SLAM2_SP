@@ -32,10 +32,13 @@ namespace ORB_SLAM2
 
 Initializer::Initializer(const Frame &ReferenceFrame, float sigma, int iterations)
 {
+    mbUseORB = ReferenceFrame.mbUseORB;
     mK = ReferenceFrame.mK.clone();
-
-    //mvKeys1 = ReferenceFrame.mvKeysUn;// zoe 20181016
-    mvKpts1 = ReferenceFrame.mvKptsUn;
+    
+    if (mbUseORB)
+        mvKeys1 = ReferenceFrame.mvKeysUn;// zoe 20181016
+    else
+        mvKpts1 = ReferenceFrame.mvKptsUn;
 
     mSigma = sigma;
     mSigma2 = sigma*sigma;
@@ -47,12 +50,23 @@ bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatc
 {
     // Fill structures with current keypoints and matches with reference frame
     // Reference Frame: 1, Current Frame: 2
-    //mvKeys2 = CurrentFrame.mvKeysUn;// zoe 20181016
-    mvKpts2 = CurrentFrame.mvKptsUn;
+    mbUseORB = CurrentFrame.mbUseORB;
+    
+    if (mbUseORB)
+    {
+        mvKeys2 = CurrentFrame.mvKeysUn;// zoe 20181016
+        mvMatches12.clear();
+        mvMatches12.reserve(mvKeys2.size());
+        mvbMatched1.resize(mvKeys1.size());
+    }
+    else
+    {
+        mvKpts2 = CurrentFrame.mvKptsUn;
+        mvMatches12.clear();
+        mvMatches12.reserve(mvKpts2.size());
+        mvbMatched1.resize(mvKpts1.size());
+    }
 
-    mvMatches12.clear();
-    mvMatches12.reserve(mvKpts2.size());
-    mvbMatched1.resize(mvKpts1.size());
     for(size_t i=0, iend=vMatches12.size();i<iend; i++)
     {
         if(vMatches12[i]>=0)
@@ -131,8 +145,18 @@ void Initializer::FindHomography(vector<bool> &vbMatchesInliers, float &score, c
     // Normalize coordinates
     vector<cv::Point2f> vPn1, vPn2;
     cv::Mat T1, T2;
-    Normalize(mvKpts1,vPn1, T1);//zoe 20181018
-    Normalize(mvKpts2,vPn2, T2);//zoe 20181018
+
+    if(mbUseORB)
+    {
+        Normalize(mvKeys1,vPn1, T1);//zoe 20181018
+        Normalize(mvKeys2,vPn2, T2);//zoe 20181018
+    }
+    else
+    {
+        Normalize(mvKpts1,vPn1, T1);//zoe 20181018
+        Normalize(mvKpts2,vPn2, T2);//zoe 20181018
+    }
+    
     cv::Mat T2inv = T2.inv();
 
     // Best Results variables
@@ -182,8 +206,19 @@ void Initializer::FindFundamental(vector<bool> &vbMatchesInliers, float &score, 
     // Normalize coordinates
     vector<cv::Point2f> vPn1, vPn2;
     cv::Mat T1, T2;
-    Normalize(mvKpts1,vPn1, T1);
-    Normalize(mvKpts2,vPn2, T2);
+
+    if (mbUseORB)
+    {
+        Normalize(mvKeys1,vPn1, T1);
+        Normalize(mvKeys2,vPn2, T2);
+    }
+    else
+    {
+        Normalize(mvKpts1,vPn1, T1);
+        Normalize(mvKpts2,vPn2, T2);
+    }
+    
+    
     cv::Mat T2t = T2.t();
 
     // Best Results variables
@@ -340,8 +375,17 @@ float Initializer::CheckHomography(const cv::Mat &H21, const cv::Mat &H12, vecto
     {
         bool bIn = true;
 
-        const cv::KeyPoint &kp1 = mvKpts1[mvMatches12[i].first];//zoe 20181018
-        const cv::KeyPoint &kp2 = mvKpts2[mvMatches12[i].second];//zoe 20181018
+        cv::KeyPoint kp1,kp2;
+        if(mbUseORB)
+        {
+            kp1 = mvKeys1[mvMatches12[i].first];//zoe 20181018
+            kp2 = mvKeys2[mvMatches12[i].second];//zoe 20181018
+        }
+        else
+        {
+            kp1 = mvKpts1[mvMatches12[i].first];//zoe 20181018
+            kp2 = mvKpts2[mvMatches12[i].second];//zoe 20181018
+        }
 
         const float u1 = kp1.pt.x;
         const float v1 = kp1.pt.y;
@@ -416,8 +460,17 @@ float Initializer::CheckFundamental(const cv::Mat &F21, vector<bool> &vbMatchesI
     {
         bool bIn = true;
 
-        const cv::KeyPoint &kp1 = mvKpts1[mvMatches12[i].first];//zoe 20101018
-        const cv::KeyPoint &kp2 = mvKpts2[mvMatches12[i].second];//zoe 20181018
+        cv::KeyPoint kp1,kp2;
+        if(mbUseORB)
+        {
+            kp1 = mvKeys1[mvMatches12[i].first];//zoe 20181018
+            kp2 = mvKeys2[mvMatches12[i].second];//zoe 20181018
+        }
+        else
+        {
+            kp1 = mvKpts1[mvMatches12[i].first];//zoe 20181018
+            kp2 = mvKpts2[mvMatches12[i].second];//zoe 20181018
+        }
 
         const float u1 = kp1.pt.x;
         const float v1 = kp1.pt.y;
@@ -493,11 +546,22 @@ bool Initializer::ReconstructF(vector<bool> &vbMatchesInliers, cv::Mat &F21, cv:
     vector<bool> vbTriangulated1,vbTriangulated2,vbTriangulated3, vbTriangulated4;
     float parallax1,parallax2, parallax3, parallax4;
     //zoe 20181018
-    int nGood1 = CheckRT(R1,t1,mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K, vP3D1, 4.0*mSigma2, vbTriangulated1, parallax1);
-    int nGood2 = CheckRT(R2,t1,mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K, vP3D2, 4.0*mSigma2, vbTriangulated2, parallax2);
-    int nGood3 = CheckRT(R1,t2,mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K, vP3D3, 4.0*mSigma2, vbTriangulated3, parallax3);
-    int nGood4 = CheckRT(R2,t2,mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K, vP3D4, 4.0*mSigma2, vbTriangulated4, parallax4);
-
+    int nGood1, nGood2, nGood3, nGood4;
+    if(mbUseORB)
+    {
+        nGood1 = CheckRT(R1,t1,mvKeys1,mvKeys2,mvMatches12,vbMatchesInliers,K, vP3D1, 4.0*mSigma2, vbTriangulated1, parallax1);
+        nGood2 = CheckRT(R2,t1,mvKeys1,mvKeys2,mvMatches12,vbMatchesInliers,K, vP3D2, 4.0*mSigma2, vbTriangulated2, parallax2);
+        nGood3 = CheckRT(R1,t2,mvKeys1,mvKeys2,mvMatches12,vbMatchesInliers,K, vP3D3, 4.0*mSigma2, vbTriangulated3, parallax3);
+        nGood4 = CheckRT(R2,t2,mvKeys1,mvKeys2,mvMatches12,vbMatchesInliers,K, vP3D4, 4.0*mSigma2, vbTriangulated4, parallax4);
+    }
+    else
+    {
+        nGood1 = CheckRT(R1,t1,mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K, vP3D1, 4.0*mSigma2, vbTriangulated1, parallax1);
+        nGood2 = CheckRT(R2,t1,mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K, vP3D2, 4.0*mSigma2, vbTriangulated2, parallax2);
+        nGood3 = CheckRT(R1,t2,mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K, vP3D3, 4.0*mSigma2, vbTriangulated3, parallax3);
+        nGood4 = CheckRT(R2,t2,mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K, vP3D4, 4.0*mSigma2, vbTriangulated4, parallax4);
+    }
+    
     int maxGood = max(nGood1,max(nGood2,max(nGood3,nGood4)));
 
     R21 = cv::Mat();
@@ -703,8 +767,16 @@ bool Initializer::ReconstructH(vector<bool> &vbMatchesInliers, cv::Mat &H21, cv:
         vector<cv::Point3f> vP3Di;
         vector<bool> vbTriangulatedi;
         //zoe 20181018
-        int nGood = CheckRT(vR[i],vt[i],mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K,vP3Di, 4.0*mSigma2, vbTriangulatedi, parallaxi);
-
+        int nGood;
+        if(mbUseORB)
+        {
+            nGood = CheckRT(vR[i],vt[i],mvKeys1,mvKeys2,mvMatches12,vbMatchesInliers,K,vP3Di, 4.0*mSigma2, vbTriangulatedi, parallaxi);
+        }
+        else
+        {
+            nGood = CheckRT(vR[i],vt[i],mvKpts1,mvKpts2,mvMatches12,vbMatchesInliers,K,vP3Di, 4.0*mSigma2, vbTriangulatedi, parallaxi);
+        }
+    
         if(nGood>bestGood)
         {
             secondBestGood = bestGood;

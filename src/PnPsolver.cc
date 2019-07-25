@@ -84,8 +84,12 @@ PnPsolver::PnPsolver(const Frame &F, const vector<MapPoint*> &vpMapPointMatches)
         {
             if(!pMP->isBad())
             {
-                //const cv::KeyPoint &kp = F.mvKeysUn[i];//zoe 20181018
-                const cv::KeyPoint &kp = F.mvKptsUn[i];
+                cv::KeyPoint kp;
+                if (F.mbUseORB)
+                  kp= F.mvKeysUn[i];//zoe 20181018
+                else
+                  kp = F.mvKptsUn[i];
+                  
                 mvP2D.push_back(kp.pt);
                 mvSigma2.push_back(F.mvLevelSigma2[kp.octave]);
 

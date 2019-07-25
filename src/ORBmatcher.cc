@@ -64,13 +64,13 @@ int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoint
             continue;
 
         const int &nPredictedLevel = pMP->mnTrackScaleLevel;
-
+        
         // The size of the window will depend on the viewing direction
         float r = RadiusByViewingCos(pMP->mTrackViewCos);
 
         if(bFactor)
             r*=th;
-
+        
         const vector<size_t> vIndices =
                 F.GetFeaturesInArea(pMP->mTrackProjX,pMP->mTrackProjY,r*F.mvScaleFactors[nPredictedLevel],nPredictedLevel-1,nPredictedLevel);
 

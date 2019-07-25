@@ -40,7 +40,7 @@ class Map;
 class LocalMapping
 {
 public:
-    LocalMapping(Map* pMap, const float bMonocular);
+    LocalMapping(Map* pMap, const float bMonocular, const bool bUseORB);//zoe 20190719
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
 
@@ -117,6 +117,7 @@ protected:
     bool mbStopped;
     bool mbStopRequested;
     bool mbNotStop;
+    bool mbUseORB;//zoe 20190719
     std::mutex mMutexStop;
 
     bool mbAcceptKeyFrames;

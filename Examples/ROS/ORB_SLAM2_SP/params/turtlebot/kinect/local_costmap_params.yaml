@@ -1,0 +1,11 @@
+local_costmap:
+   global_frame: /map
+   robot_base_frame: /base_link1
+   update_frequency: 4 #地图更新的频率 4
+   publish_frequency: 1 # 可视化信息的速率1
+   transform_tolerance: 3 # 数据可以容忍延迟到达的时间
+   width: 5 #米
+   height: 5
+   static_map: false # 通过先验地图直接生成
+   rolling_window: true # costmap以机器人为中心
+   resolution: 0.03 #米/格

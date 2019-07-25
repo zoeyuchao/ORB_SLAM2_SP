@@ -126,11 +126,18 @@ public:
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
 
+    ORBVocabulary* mpORBvocabulary;
+    //========================================================//
+    //zoe 20181016
+    LFNETVocabulary* mpLFNETvocabulary;
+    //========================================================//
+
     static long unsigned int nNextId;
     long unsigned int mnId;
     const long unsigned int mnFrameId;
 
     const double mTimeStamp;
+    const bool mbUseORB;//zoe 20190721
 
     // Grid (to speed up feature matching)
     const int mnGridCols;
@@ -216,11 +223,7 @@ protected:
 
     // BoW
     KeyFrameDatabase* mpKeyFrameDB;
-    ORBVocabulary* mpORBvocabulary;
-    //========================================================//
-    //zoe 20181016
-    LFNETVocabulary* mpLFNETvocabulary;
-    //========================================================//
+
 
     // Grid over the image to speed up feature matching
     std::vector< std::vector <std::vector<size_t> > > mGrid;

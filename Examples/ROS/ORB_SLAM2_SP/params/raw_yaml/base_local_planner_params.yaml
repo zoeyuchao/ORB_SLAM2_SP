@@ -1,0 +1,37 @@
+TrajectoryPlannerROS: 
+    max_vel_x: 0.2 # x轴最大速度 m/s 0.45
+    max_vel_y: 0.0 # y轴最大速度 m/s None
+    min_vel_x: -0.2 # x轴最小速度 m/s -0.4
+    min_vel_y: 0 # x轴最小速度 m/s None
+    max_vel_theta: 1 # 最大转角 radians/s 1
+    min_vel_theta: -1 # 最小转角 radians/s 1  DWA视为绝对值
+    min_in_place_vel_theta: 0.2 #原地旋转时,基座允许的最小角速度
+
+    acc_lim_theta: 0.3 # 加速度 m/s^2 大车1m/s^2 07
+    acc_lim_x: 0.2 # 0.3
+    acc_lim_y: 0 # 0.3
+
+    holonomic_robot: false  #是否完整约束
+    yaw_goal_tolerance: 0.5 # about 6 degrees 到达目标时,控制器的偏航/旋转误差 
+    xy_goal_tolerance: 0.15  # 10 cm  到达目标时,控制器在XY的位置误差
+    latch_xy_goal_tolerance: false  #是否修正
+    pdist_scale: 0.8  # 机器人距离给定路径有多近的加权值
+    gdist_scale: 0.6  # 控制速度的加权值 0.6
+    meter_scoring: true  # 以米为单位
+
+    heading_lookahead: 0.325  # 在原地旋转轨迹得分不同时，单位米中向前走多远
+    heading_scoring: false  # Whether to score based on the robot's heading to the path or its distance from the path
+    heading_scoring_timestep: 0.8  # How far to look ahead in time in seconds along the simulated trajectory when using heading scoring
+    occdist_scale: 0.1  # 定义控制器躲避障碍物的程度.
+    oscillation_reset_dist: 0.05  # 机器人必须运动多少米远后才能复位震荡标记
+    publish_cost_grid_pc: true  # 是否发布规划时计划使用的cost grid
+    prune_plan: false  # 是否消失走过的路径
+  
+    sim_time: 4.0  # 轨迹模拟时间 1.0
+    sim_granularity: 0.025   #给定轨迹两点间的间隔尺寸
+    angular_sim_granularity: 0.025  #间隔角度
+    vx_samples: 20  # 在x方向上速度空间使用的样本数 8
+    vy_samples: 0  # 在x方向上速度空间使用的样本数 None
+    vtheta_samples: 40 # 角度方向样本数 20
+    dwa: false # 是否用DWA模式
+    simple_attractor: false  

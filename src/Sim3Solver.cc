@@ -78,11 +78,19 @@ Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> 
             if(indexKF1<0 || indexKF2<0)
                 continue;
 
-            //const cv::KeyPoint &kp1 = pKF1->mvKeysUn[indexKF1];//zoe 20181017
-            //const cv::KeyPoint &kp2 = pKF2->mvKeysUn[indexKF2];//zoe 20181017
+            cv::KeyPoint kp1, kp2;
+            if (pKF1->mbUseORB && pKF2->mbUseORB)
+            {
+                kp1 = pKF1->mvKeysUn[indexKF1];//zoe 20181017
+                kp2 = pKF2->mvKeysUn[indexKF2];//zoe 20181017
+            }
+            else
+            {
+                kp1 = pKF1->mvKptsUn[indexKF1];//zoe 20181017
+                kp2 = pKF2->mvKptsUn[indexKF2];//zoe 20181017
+            }
 
-            const cv::KeyPoint &kp1 = pKF1->mvKptsUn[indexKF1];//zoe 20181017
-            const cv::KeyPoint &kp2 = pKF2->mvKptsUn[indexKF2];//zoe 20181017
+
 
             const float sigmaSquare1 = pKF1->mvLevelSigma2[kp1.octave];
             const float sigmaSquare2 = pKF2->mvLevelSigma2[kp2.octave];

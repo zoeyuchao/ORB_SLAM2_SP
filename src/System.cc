@@ -30,8 +30,8 @@ namespace ORB_SLAM2
 {
 //zoe 20190513
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer, const bool bUseLocalMap, const bool bUseLoop, const bool bUseBow, const bool bOnlyTracking):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
-        mbDeactivateLocalizationMode(false), mbUseLocalMap(bUseLocalMap), mbUseLoop(bUseLoop), mbUseBoW(bUseBow), mbOnlyTracking(bOnlyTracking)
+               const bool bUseViewer, const bool bUseLocalMap, const bool bUseLoop, const bool bUseBow, const bool bUseORB, const bool bOnlyTracking):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+        mbDeactivateLocalizationMode(false), mbUseLocalMap(bUseLocalMap), mbUseLoop(bUseLoop), mbUseBoW(bUseBow), mbUseORB(bUseORB), mbOnlyTracking(bOnlyTracking)
 {
     // Output welcome message
     cout << endl <<
@@ -61,6 +61,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     cout << "Loop Mapping is set: " << mbUseLocalMap << endl;
     cout << "Loop Closing is set: " << mbUseLoop << endl;
     cout << "Use BoW is set: " << mbUseBoW << endl;
+    cout << "Use ORB is set: " << mbUseORB << endl;
     cout << "Only Track is set: " << mbOnlyTracking << endl;
 
     //Create the Map
@@ -69,37 +70,60 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Create Drawers. These are used by the Viewer
     mpFrameDrawer = new FrameDrawer(mpMap);
     mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
+    float resolution = fsSettings["PointCloudMapping.Resolution"];
+    mpPointCloudMapping = boost::make_shared<PointCloudMapping>(resolution);//zoe 20190711
 
     if (mbUseBoW)
     {
         //Load Vocabulary
         cout << endl << "Loading Vocabulary. This could take a while..." << endl;
 
-        //zoe 20181016
-        mpVocabularyLFNet = new LFNETVocabulary();
-        bool bVocLoadLFNet = mpVocabularyLFNet->loadFromTextFile(strVocFile);
-        if(!bVocLoadLFNet)
+        //zoe 20190719
+        if (mbUseORB)
         {
-            cerr << "Wrong path to vocabulary. " << endl;
-            cerr << "Falied to open at: " << strVocFile << endl;
-            exit(-1);
-        }
-        cout << "Vocabulary loaded!" << endl << endl;
+            mpVocabularyORB = new ORBVocabulary();
+            bool bVocLoadORB = mpVocabularyORB->loadFromTextFile(strVocFile);
+            if(!bVocLoadORB)
+            {
+                cerr << "Wrong path to vocabulary. " << endl;
+                cerr << "Falied to open at: " << strVocFile << endl;
+                exit(-1);
+            }
+            cout << "ORB Vocabulary loaded!" << endl << endl;
 
-        //Create KeyFrame Database
-        mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabularyLFNet);// zoe database名字没改
-    
-        mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer,
-                             mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190513 增加tracking参数
+            //Create KeyFrame Database
+            mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabularyORB, mbUseORB);// zoe database名字没改
+        
+            mpTracker = new Tracking(this, mpVocabularyORB, mpFrameDrawer, mpMapDrawer,
+                                mpMap, mpKeyFrameDatabase, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190513 增加tracking参数
+        }
+        else
+        {
+            mpVocabularyLFNet = new LFNETVocabulary();
+            bool bVocLoadLFNet = mpVocabularyLFNet->loadFromTextFile(strVocFile);
+            if(!bVocLoadLFNet)
+            {
+                cerr << "Wrong path to vocabulary. " << endl;
+                cerr << "Falied to open at: " << strVocFile << endl;
+                exit(-1);
+            }
+            cout << "LFNET Vocabulary loaded!" << endl << endl;
+
+            //Create KeyFrame Database
+            mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabularyLFNet, mbUseORB);// zoe database名字没改
+        
+            mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer,
+                                mpMap, mpKeyFrameDatabase, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190513 增加tracking参数
+        }
     }
     else
     {
-        mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190520
+        mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking, mbUseORB); //zoe 20190520
     }
     //Initialize the Local Mapping thread and launch
     if (mbUseLocalMap)
     {
-        mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
+        mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR, mbUseORB);
         mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run,mpLocalMapper);
     }
 
@@ -108,7 +132,14 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     if (mbUseBoW && mbUseLoop)
     {   
         //zoe 20181016
-        mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabularyLFNet, mSensor!=MONOCULAR);
+        if (mbUseORB)
+        {
+            mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabularyORB, mSensor!=MONOCULAR);
+        }
+        else
+        {
+            mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabularyLFNet, mSensor!=MONOCULAR);
+        }     
         mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
     }
 
@@ -192,8 +223,11 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
     unique_lock<mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;
     mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-   // mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;// zoe
-    mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKptsUn;// zoe
+    
+    if (mbUseORB)
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;// zoe
+    else
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKptsUn;// zoe
     
     return Tcw;
 }
@@ -251,9 +285,11 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
     unique_lock<mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;
     mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-    //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;// zoe mark
-    //zoe 20181016
-    mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKptsUn;
+
+    if (mbUseORB)
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;// zoe mark
+    else
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKptsUn;
     
     return Tcw;
 }
@@ -305,8 +341,11 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
     unique_lock<mutex> lock2(mMutexState);
     mTrackingState = mpTracker->mState;
     mTrackedMapPoints = mpTracker->mCurrentFrame.mvpMapPoints;
-    //mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;//zoe nochange
-    mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKptsUn;//zoe nochange
+    
+    if (mbUseORB)
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;//zoe nochange
+    else
+        mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKptsUn;//zoe nochange
 
     return Tcw;
 }

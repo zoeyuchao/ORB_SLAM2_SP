@@ -22,9 +22,9 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include<string>
-#include<thread>
-#include<opencv2/core/core.hpp>
+#include <string>
+#include <thread>
+#include <opencv2/core/core.hpp>
 
 #include "Tracking.h"
 #include "FrameDrawer.h"
@@ -36,6 +36,11 @@
 #include "ORBVocabulary.h"
 #include "Viewer.h"
 #include <unistd.h>
+#include "boost/make_shared.hpp"
+#include "PointCloud.h"
+
+class PointCloudMapping;
+
 namespace ORB_SLAM2
 {
 
@@ -45,6 +50,7 @@ class Map;
 class Tracking;
 class LocalMapping;
 class LoopClosing;
+
 
 class System
 {
@@ -59,7 +65,7 @@ public:
 public:
 
     // Initialize the SLAM system. It launches the Local Mapping, Loop Closing and Viewer threads.
-    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const bool bUseLocalMap = true, const bool bUseLoop = true, const bool bUseBoW = false, const bool bOnlyTracking = false);
+    System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor, const bool bUseViewer = true, const bool bUseLocalMap = true, const bool bUseLoop = true, const bool bUseBoW = false, const bool bUseORB = false, const bool bOnlyTracking = false);
 
     // Proccess the given stereo frame. Images must be synchronized and rectified.
     // Input images: RGB (CV_8UC3) or grayscale (CV_8U). RGB is converted to grayscale.
@@ -128,7 +134,7 @@ private:
     eSensor mSensor;
 
     // ORB vocabulary used for place recognition and feature matching.
-    ORBVocabulary* mpVocabulary;
+    ORBVocabulary* mpVocabularyORB;
     //=======================================//
     LFNETVocabulary* mpVocabularyLFNet;
     //=======================================//
@@ -162,6 +168,7 @@ private:
     std::thread* mptLocalMapping;
     std::thread* mptLoopClosing;
     std::thread* mptViewer;
+    boost::shared_ptr<PointCloudMapping> mpPointCloudMapping;//zoe 20190711
 
     // Reset flag
     std::mutex mMutexReset;
@@ -171,6 +178,8 @@ private:
     bool mbUseLoop;
     // zoe 20190522
     bool mbUseBoW;
+    //zoe 20190719
+    bool mbUseORB;
     // zoe 20190513
     bool mbOnlyTracking;
 
