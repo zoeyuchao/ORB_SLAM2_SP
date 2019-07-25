@@ -1371,7 +1371,10 @@ bool Tracking::TrackReferenceKeyFrame()
     }
     else
     {
-        nmatches = matcher.SearchByBFLFNet(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
+        if (mbUseORB)
+            nmatches = matcher.SearchByBF(mpReferenceKF,mCurrentFrame,vpMapPointMatches);//zoe 20190725
+        else
+            nmatches = matcher.SearchByBFLFNet(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
     }
     
     
@@ -2211,7 +2214,7 @@ bool Tracking::Relocalization()
             {
                 int nmatches = 0;
                 if (mbUseORB)
-                    nmatches = matcher.SearchByBoW(pKF,mCurrentFrame,vvpMapPointMatches[i]);//zoe 20181017
+                    nmatches = matcher.SearchByBF(pKF,mCurrentFrame,vvpMapPointMatches[i]);//zoe 20181017
                 else
                     nmatches = matcher.SearchByBFLFNet(pKF,mCurrentFrame,vvpMapPointMatches[i]);
                 
