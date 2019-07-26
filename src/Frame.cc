@@ -32,6 +32,7 @@
 #include <vector> //20190511 zoe
 //#include <torch/script.h> // zoe 20190724
 //#include <torch/serialize.h> // zoe 20190724
+#include <SuperPoint.hpp>
 
 namespace ORB_SLAM2
 {
@@ -350,127 +351,9 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     
     AssignFeaturesToGridLFNet();
 }
-/*
-//zoe 20190724
-int ExactSP(const cv::Mat& image, std::shared_ptr<torch::jit::script::Module> module, float* grey, std::vector<cv::KeyPoint>& kpts, std::vector<std::vector<float>>& dspts)
-{
-    //This is for orientation
-    // pre-compute the end of a row in a circular patch
-    //用于计算特征方向时，每个v坐标对应最大的u坐标
-    std::vector<int> umax;
-    umax.resize(HALF_PATCH_SIZE_SP + 1);
-
-    int v, v0, vmax = cvFloor(HALF_PATCH_SIZE_SP * sqrt(2.f) / 2 + 1);
-    int vmin = cvCeil(HALF_PATCH_SIZE_SP * sqrt(2.f) / 2);
-    const double hp2 = HALF_PATCH_SIZE_SP*HALF_PATCH_SIZE_SP;
-    for (v = 0; v <= vmax; ++v)
-        umax[v] = cvRound(sqrt(hp2 - v * v));
-
-    // Make sure we are symmetric
-    for (v = HALF_PATCH_SIZE_SP, v0 = 0; v >= vmin; --v)
-    {
-        while (umax[v0] == umax[v0 + 1])
-            ++v0;
-        umax[v] = v0;
-        ++v0;
-    }
-    // This is for pytorch...
-    int H = image.rows;
-    int W = image.cols;
-    if (H != 480 || W != 640) // zoe 20190724 超参
-    {
-        H = 480;
-        W = 640;
-    }
-
-    auto inputcuda = torch::from_blob(grey, {1,1,H,W},at::ScalarType::Float).to(at::kCUDA);
-    torch::Tensor output = module->forward({inputcuda}).toTensor();
-
-    torch::Tensor output_s = output.squeeze();
-    torch::Tensor heatmap = output_s.slice(0,0,1);  // .index_select(0,lsize1);
-    heatmap = heatmap*255;
-    torch::Tensor desc = output_s.slice(0,1,257); // .index_select(0,lsize2);
-    desc = torch::transpose(desc,0,1);
-    desc = torch::transpose(desc,1,2);
-    heatmap = heatmap.to(at::kCPU);
-    auto fixmap= heatmap.round().to(torch::kUInt8);
-    uint8_t* fixptr = (uint8_t* ) fixmap.data_ptr();
-
-    std::vector<float> pts;
-    pts.clear();
-
-    uint8_t tmp_semi = 0;
-    for(int i=0; i<H; i++) 
-    {
-        for(int j=0; j<W; j++) 
-        {
-            if( fixptr[i*W+j] > 0) 
-            {
-                tmp_semi = fixptr[i*W+j];
-                for(int kh=std::max(0,i-NMS_Threshold); kh<std::min(H,i+NMS_Threshold+1); kh++)
-                {
-                    for(int kw=std::max(0,j-NMS_Threshold); kw<std::min(W,j+NMS_Threshold+1); kw++)
-                        if(i!=kh||j!=kw) 
-                        {
-                            if(tmp_semi >= fixptr[kh*W+kw])
-                                fixptr[kh*W+kw] = 0;
-                            else
-                                fixptr[i*W+j] = 0;
-                        }
-                }
-                if(fixptr[i*W+j] != 0)
-                {
-                    torch::Tensor tmptensor = torch::ones({3});
-                    pts.push_back(i);
-                    pts.push_back(j);
-                    pts.push_back(fixptr[i*W+j]);
-                }
-            }
-        }
-    }
-
-    int afternms = pts.size();
-    torch::Tensor pts_tensor = torch::from_blob(pts.data(),{afternms/3,3});
-    auto idx = 2 * torch::ones( pts_tensor.size(0), torch::kLong);
-    auto rows = torch::arange(0, pts_tensor.size(0), torch::kLong);
-
-    auto inds2 = torch::argsort(pts_tensor.index({rows,idx}),-1,true );
-    int outpoint_num = std::min(int(pts_tensor.size(0) ),MAX_P_NUM);
-    inds2 = inds2.index({torch::arange(0, outpoint_num, torch::kLong)});
-
-    kpts.clear();
-    kpts.resize(outpoint_num);
-    dspts.clear();
-
-    for (int i = 0; i < outpoint_num; i++)
-    {
-        //特征点
-        kpts[i].pt.x = pts_tensor[ inds2[i] ][0].item<float>() ;
-        kpts[i].pt.y = pts_tensor[ inds2[i] ][1].item<float>() ;
-        kpts[i].angle = SP_Angle(image, kpts[i], umax); //20190511 zoe
-        kpts[i].octave = 0;
-        //描述子
-        std::vector<float> dspt;
-        dspt.resize(256);
-        for (int j = 0; j < 256; j++)//定义列循环
-		{
-			float tempdspt = desc[int(kpts[i].pt.x)][int(kpts[i].pt.y)][j].item<float>();//读取一个值（空格、制表符、换行隔开）就写入到矩阵中，行列不断循环进行
-            if(tempdspt < -0.5)
-                dspt[j] = -0.5;//0
-            else if(tempdspt > 0.5)
-                dspt[j] = 0.5;//255
-            else
-                dspt[j] = tempdspt;
-            
-        }
-        dspts.push_back(dspt);
-    }
-
-    return 0;
-}
 
 //zoe 20181016 SP BOW PYTORCH
-Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage)
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, SuperPoint* pSuperPoint)
     :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)),mpLFNETvocabulary(voclfnet),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth), mbUseORB(false)
 {
@@ -501,7 +384,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
         mvInvLevelSigma2[i]=1.0f/mvLevelSigma2[i];
     }
 
-    //ExactSP(imGray, pModule, pImage, mvKpts, mvDspts);
+    pSuperPoint->ExactSP(imGray, mvKpts, mvDspts);
 
     // 以下为完成相同的功能,仿照函数功能新写一些函数
     
@@ -537,7 +420,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     
     AssignFeaturesToGridLFNet();
 }
-*/
+
 //zoe 20190520 SP
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)), mpLFNETvocabulary(static_cast<LFNETVocabulary*>(NULL)),mpORBextractorLeft(static_cast<ORBextractor*>(NULL)),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
@@ -687,9 +570,9 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     
     AssignFeaturesToGridLFNet();
 }
-/*
+
 //zoe 20190724 SP PYTORCH
-Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage)
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, SuperPoint* pSuperPoint)
     :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)), mpLFNETvocabulary(static_cast<LFNETVocabulary*>(NULL)),mpORBextractorLeft(static_cast<ORBextractor*>(NULL)),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),mbUseORB(false)
 {
@@ -719,7 +602,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
         mvInvLevelSigma2[i]=1.0f/mvLevelSigma2[i];
     }
 
-    //ExactSP(imGray, pModule, pImage, mvKpts, mvDspts);
+    pSuperPoint->ExactSP(imGray, mvKpts, mvDspts);
 
     // 以下为完成相同的功能,仿照函数功能新写一些函数
     
@@ -755,7 +638,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     
     AssignFeaturesToGridLFNet();
 }
-*/
+
 //zoe 20190721 ORB 
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)), mpLFNETvocabulary(static_cast<LFNETVocabulary*>(NULL)),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),

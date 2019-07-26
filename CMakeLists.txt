@@ -56,6 +56,10 @@ ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 ${catkin_INCLUDE_DIRS}
 ${PCL_INCLUDE_DIRS}
+${PROJECT_SOURCE_DIR}/Thirdparty/superpoint/include/
+/home/yuchao/caffe-ssd/include/ 
+/usr/local/include 
+/usr/local/cuda/include
 #${TORCH_INCLUDE_DIRS}
 )
 
@@ -91,6 +95,10 @@ ${Pangolin_LIBRARIES}
 ${PCL_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+${PROJECT_SOURCE_DIR}/Thirdparty/superpoint/lib/libsuperpoint.so
+/home/yuchao/caffe-ssd/build/lib/libcaffe.so
+/usr/lib/x86_64-linux-gnu/libglog.so
+/usr/lib/x86_64-linux-gnu/libboost_system.so
 ${catkin_LIBRARIES}
 #${TORCH_LIBRARIES}
 )

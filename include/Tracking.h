@@ -66,17 +66,17 @@ public:
              KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking);//zoe 20190513 增加最后一个参
     //zoe 20181016
     Tracking(System* pSys, LFNETVocabulary* pVocLFNet, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking);// zoe 20190513 增加最后一个参�?    
+             KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking);// zoe 20190513 增加最后一个参�?    
     //zoe 20190520
     Tracking(System* pSys, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, 
              const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB);
 
     //zoe 20180724
-    //Tracking(System* pSys, LFNETVocabulary* pVocLFNet, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             //KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage, const string &strSettingPath, const int sensor, const bool bOnlyTracking);// zoe 20190513 增加最后一个参�?    
+    Tracking(System* pSys, LFNETVocabulary* pVocLFNet, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
+             KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, SuperPoint* pSuperPoint, const string &strSettingPath, const int sensor, const bool bOnlyTracking); 
     //zoe 20190724
-    //Tracking(System* pSys, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage,
-             //const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB);
+    Tracking(System* pSys, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, SuperPoint* pSuperPoint,
+             const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
@@ -139,6 +139,7 @@ public:
     bool mbUseExistFile;
     //std::shared_ptr<torch::jit::script::Module> mpModule;//zoe 20190724
     //float* mpImage;//zoe 20190724
+    SuperPoint* mpSuperPoint;//zoe 20190726
 
     void Reset();
 

@@ -1,0 +1,329 @@
+name: "pytorch"
+input: "data"
+input_dim: 1
+input_dim: 1
+input_dim: 480
+input_dim: 640
+
+layer {
+    name: "ConvNdBackward1"
+    type: "Convolution"
+    bottom: "data"
+    top: "ConvNdBackward1"
+    convolution_param {
+        num_output: 64
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward2"
+    type: "ReLU"
+    bottom: "ConvNdBackward1"
+    top: "ConvNdBackward1"
+}
+layer {
+    name: "ConvNdBackward3"
+    type: "Convolution"
+    bottom: "ConvNdBackward1"
+    top: "ConvNdBackward3"
+    convolution_param {
+        num_output: 64
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward4"
+    type: "ReLU"
+    bottom: "ConvNdBackward3"
+    top: "ConvNdBackward3"
+}
+layer {
+    name: "MaxPool2dBackward5"
+    type: "Pooling"
+    bottom: "ConvNdBackward3"
+    top: "MaxPool2dBackward5"
+    pooling_param {
+        pool: MAX
+        kernel_size: 2
+        stride: 2
+        pad: 0
+    }
+}
+layer {
+    name: "ConvNdBackward6"
+    type: "Convolution"
+    bottom: "MaxPool2dBackward5"
+    top: "ConvNdBackward6"
+    convolution_param {
+        num_output: 64
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward7"
+    type: "ReLU"
+    bottom: "ConvNdBackward6"
+    top: "ConvNdBackward6"
+}
+layer {
+    name: "ConvNdBackward8"
+    type: "Convolution"
+    bottom: "ConvNdBackward6"
+    top: "ConvNdBackward8"
+    convolution_param {
+        num_output: 64
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward9"
+    type: "ReLU"
+    bottom: "ConvNdBackward8"
+    top: "ConvNdBackward8"
+}
+layer {
+    name: "MaxPool2dBackward10"
+    type: "Pooling"
+    bottom: "ConvNdBackward8"
+    top: "MaxPool2dBackward10"
+    pooling_param {
+        pool: MAX
+        kernel_size: 2
+        stride: 2
+        pad: 0
+    }
+}
+layer {
+    name: "ConvNdBackward11"
+    type: "Convolution"
+    bottom: "MaxPool2dBackward10"
+    top: "ConvNdBackward11"
+    convolution_param {
+        num_output: 128
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward12"
+    type: "ReLU"
+    bottom: "ConvNdBackward11"
+    top: "ConvNdBackward11"
+}
+layer {
+    name: "ConvNdBackward13"
+    type: "Convolution"
+    bottom: "ConvNdBackward11"
+    top: "ConvNdBackward13"
+    convolution_param {
+        num_output: 128
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward14"
+    type: "ReLU"
+    bottom: "ConvNdBackward13"
+    top: "ConvNdBackward13"
+}
+layer {
+    name: "MaxPool2dBackward15"
+    type: "Pooling"
+    bottom: "ConvNdBackward13"
+    top: "MaxPool2dBackward15"
+    pooling_param {
+        pool: MAX
+        kernel_size: 2
+        stride: 2
+        pad: 0
+    }
+}
+layer {
+    name: "ConvNdBackward16"
+    type: "Convolution"
+    bottom: "MaxPool2dBackward15"
+    top: "ConvNdBackward16"
+    convolution_param {
+        num_output: 128
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward17"
+    type: "ReLU"
+    bottom: "ConvNdBackward16"
+    top: "ConvNdBackward16"
+}
+layer {
+    name: "ConvNdBackward18"
+    type: "Convolution"
+    bottom: "ConvNdBackward16"
+    top: "ConvNdBackward18"
+    convolution_param {
+        num_output: 128
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward19"
+    type: "ReLU"
+    bottom: "ConvNdBackward18"
+    top: "ConvNdBackward18"
+}
+layer {
+    name: "ConvNdBackward20"
+    type: "Convolution"
+    bottom: "ConvNdBackward18"
+    top: "ConvNdBackward20"
+    convolution_param {
+        num_output: 256
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward21"
+    type: "ReLU"
+    bottom: "ConvNdBackward20"
+    top: "ConvNdBackward20"
+}
+layer {
+    name: "ConvNdBackward22"
+    type: "Convolution"
+    bottom: "ConvNdBackward20"
+    top: "ConvNdBackward22"
+    convolution_param {
+        num_output: 65
+        pad_h: 0
+        pad_w: 0
+        kernel_h: 1
+        kernel_w: 1
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ConvNdBackward23"
+    type: "Convolution"
+    bottom: "ConvNdBackward18"
+    top: "ConvNdBackward23"
+    convolution_param {
+        num_output: 256
+        pad_h: 1
+        pad_w: 1
+        kernel_h: 3
+        kernel_w: 3
+        stride: 1
+        dilation: 1
+    }
+}
+layer {
+    name: "ThresholdBackward24"
+    type: "ReLU"
+    bottom: "ConvNdBackward23"
+    top: "ConvNdBackward23"
+}
+layer {
+    name: "ConvNdBackward25"
+    type: "Convolution"
+    bottom: "ConvNdBackward23"
+    top: "ConvNdBackward25"
+    convolution_param {
+        num_output: 256
+        pad_h: 0
+        pad_w: 0
+        kernel_h: 1
+        kernel_w: 1
+        stride: 1
+        dilation: 1
+    }
+}
+
+layer {
+  name: "norm"
+  type: "Normalize"
+  bottom: "ConvNdBackward25"
+  top: "ConvNdBackward25"
+  norm_param {
+    across_spatial: False
+    scale_filler {
+      type: "constant"
+      value: 1
+    }
+    channel_shared: True
+  }
+}
+
+layer {
+  name: "ConvNdBackward25Permute"
+  type: "Permute"
+  bottom: "ConvNdBackward25"
+  top: "ConvNdBackward25Permute"
+  permute_param {
+    order: 0
+    order: 2
+    order: 3
+    order: 1
+  }
+}
+layer {
+  name: "Semi_Soft"
+  type: "Softmax"
+  bottom: "ConvNdBackward22"
+  top: "ConvNdBackward22"
+}
+layer {
+  name: "ConvNdBackward22Permute"
+  type: "Permute"
+  bottom: "ConvNdBackward22"
+  top: "ConvNdBackward22Permute"
+  permute_param {
+    order: 0
+    order: 2
+    order: 3
+    order: 1
+  }
+}

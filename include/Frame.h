@@ -39,6 +39,8 @@
 #include <memory>
 #include <algorithm>
 
+#include "SuperPoint.hpp"
+
 namespace ORB_SLAM2
 {
 #define FRAME_GRID_ROWS 48
@@ -46,6 +48,7 @@ namespace ORB_SLAM2
 
 class MapPoint;
 class KeyFrame;
+
 
 class Frame
 {
@@ -68,12 +71,12 @@ public:
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
     //zoe 20190724
-    //Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage);
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, SuperPoint* pSuperPoint);
     
     //zoe 20190724
-    //Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage);
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, SuperPoint* pSuperPoint);
 
-   //zoe 20190721
+    //zoe 20190721
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
     
     // Constructor for Monocular cameras.
@@ -166,10 +169,9 @@ public:
     //=======================================//
     // 20181015 zoe
     LFNETVocabulary* mpLFNETvocabulary;
-    std::vector<cv::KeyPoint> mvKpts;//特征点
-    std::vector<std::vector<float>> mvDspts;// 描述子
-    std::vector<cv::KeyPoint> mvKptsUn;//校正后的特征点
-    //=======================================//
+    std::vector<cv::KeyPoint> mvKpts;// 
+    std::vector<std::vector<float>> mvDspts;// 
+    std::vector<cv::KeyPoint> mvKptsUn;//
     std::vector<cv::KeyPoint> mvKeysUn;
 
     // Corresponding stereo coordinate and depth for each keypoint.
@@ -247,7 +249,7 @@ private:
     cv::Mat mtcw;
     cv::Mat mRwc;
     cv::Mat mOw; //==mtwc   
-    //这里的Ow其实是世界坐标系(第一帧)原点(相机光心)在当前帧参考系(相机坐标系)中的坐标
+    //这里的Ow其实是世界坐标系(第一�?原点(相机光心)在当前帧参考系(相机坐标�?中的坐标
     //等价于twc,运行ORB界面上有个Follow Camera选项，选上后，相机在界面中的位置固定，
     //这是就需要这个Ow来计算第一帧的坐标，而不能错误地理解为当前相机在世界参考系下的坐标
 };
