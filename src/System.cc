@@ -31,6 +31,7 @@ namespace ORB_SLAM2
 //zoe 20190513
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false)
+{
     // Output welcome message
     cout << endl <<
     "ORB-SLAM2 Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza." << endl <<
@@ -208,7 +209,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     }
 
     //Initialize the Viewer thread and launch
-    if(bUseViewer)
+    if(mbUseViewer)
     {
         mpViewer = new Viewer(this, mpFrameDrawer, mpMapDrawer, mpTracker, strSettingsFile, mbOnlyTracking);
         mptViewer = new thread(&Viewer::Run, mpViewer);

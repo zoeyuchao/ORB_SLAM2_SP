@@ -195,7 +195,7 @@ private:
     bool mbUseExistFile;
     // zoe 20190513
     bool mbOnlyTracking;
-    bool = mbUseViewer;
+    bool mbUseViewer;
 
     // Change mode flags
     std::mutex mMutexMode;
