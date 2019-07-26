@@ -30,7 +30,7 @@ namespace ORB_SLAM2
 {
 //zoe 20190513
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
-        mbDeactivateLocalizationMode(false)
+        mbDeactivateLocalizationMode(false), mbUseLocalMap(false), mbUseLoop(false), mbUseBoW(false), mbUseORB(false), mbUseExistFile(false), mbOnlyTracking(false), mbUseViewer(false)
 {
     // Output welcome message
     cout << endl <<
@@ -56,13 +56,28 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        exit(-1);
     }
 
-    mbUseLocalMap = fsSettings["UseLocalMap"];
-    mbUseLoop = fsSettings["UseLoop"];
-    mbUseViewer = fsSettings["UseViewer"];
-    mbUseBoW = fsSettings["UseBoW"];
-    mbUseORB = fsSettings["UseORB"];
-    mbUseExistFile = fsSettings["UseExistFile"];
-    mbOnlyTracking = fsSettings["OnlyTracking"];
+    int bUseLocalMap = fsSettings["UseLocalMap"];
+    int bUseLoop = fsSettings["UseLoop"];
+    int bUseViewer = fsSettings["UseViewer"];
+    int bUseBoW = fsSettings["UseBoW"];
+    int bUseORB = fsSettings["UseORB"];
+    int bUseExistFile = fsSettings["UseExistFile"];
+    int bOnlyTracking = fsSettings["OnlyTracking"];
+
+    if (bUseLocalMap == 1)
+        mbUseLocalMap = true;
+    if (bUseLoop == 1)
+        mbUseLoop = true;
+    if (bUseViewer == 1)
+        mbUseViewer = true;
+    if (bUseBoW == 1)
+        mbUseBoW = true;
+    if (bUseORB == 1)
+        mbUseORB = true;
+    if (bUseExistFile == 1)
+        mbUseExistFile = true;
+    if (bOnlyTracking == 1)
+        mbOnlyTracking = true;
 
     // turn off the loop or not //zoe 20190511 
     cout << "Loop Mapping is set: " << mbUseLocalMap << endl;
