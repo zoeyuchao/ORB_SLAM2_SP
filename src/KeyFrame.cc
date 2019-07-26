@@ -86,7 +86,7 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap):
 
 void KeyFrame::ComputeBoW()
 {
-    if(mBowVec.empty() || mFeatVec.empty())
+    if(mpORBvocabulary && (mBowVec.empty() || mFeatVec.empty()))
     {
         vector<cv::Mat> vCurrentDesc = Converter::toDescriptorVector(mDescriptors);
         // Feature vector associate features with nodes in the 4th level (from leaves up)
