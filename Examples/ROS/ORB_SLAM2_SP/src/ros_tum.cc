@@ -31,9 +31,9 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "TUM");
     ros::start();
    
-    if(argc < 5)
+    if(argc != 4)
     {
-        cerr << endl << "Usage: TUM path_to_vocabulary path_to_settings path_to_sequence path_to_association " << endl;
+        cerr << endl << "Usage: TUM path_to_settings path_to_sequence path_to_association " << endl;
         return 1;
     }
 
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     vector<string> vstrImageFilenamesRGB;
     vector<string> vstrImageFilenamesD;
     vector<double> vTimestamps;
-    string strAssociationFilename = string(argv[4]);
+    string strAssociationFilename = string(argv[3]);
     LoadImages(strAssociationFilename, vstrImageFilenamesRGB, vstrImageFilenamesD, vTimestamps);
     
     // Check consistency in the number of images and depthmaps
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     }
     
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD); //viewer, localmap, loop, bow, orb,existfile, trackonly, 若bow为false，loop也不会启动
+    ORB_SLAM2::System SLAM(argv[1],ORB_SLAM2::System::RGBD); //viewer, localmap, loop, bow, orb,existfile, trackonly, 若bow为false，loop也不会启动
 
     // Vector for tracking time statistics
     vector<double> vTimesTrack;
@@ -82,13 +82,13 @@ int main(int argc, char **argv)
     int ni=0;
     while(ros::ok()&&ni<nImages)
     {
-        imRGB = cv::imread(string(argv[3])+"/"+vstrImageFilenamesRGB[ni],CV_LOAD_IMAGE_UNCHANGED);
-        imD = cv::imread(string(argv[3])+"/"+vstrImageFilenamesD[ni],CV_LOAD_IMAGE_UNCHANGED);
+        imRGB = cv::imread(string(argv[2])+"/"+vstrImageFilenamesRGB[ni],CV_LOAD_IMAGE_UNCHANGED);
+        imD = cv::imread(string(argv[2])+"/"+vstrImageFilenamesD[ni],CV_LOAD_IMAGE_UNCHANGED);
         double tframe = vTimestamps[ni];
         if(imRGB.empty())
         {
             cerr << endl << "Failed to load image at: "
-                 << string(argv[3]) << "/" << vstrImageFilenamesRGB[ni] << endl;
+                 << string(argv[2]) << "/" << vstrImageFilenamesRGB[ni] << endl;
             return 1;
         }
 

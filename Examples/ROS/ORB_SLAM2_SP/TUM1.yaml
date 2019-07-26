@@ -3,11 +3,11 @@
 #--------------------------------------------------------------------------------------------
 # Gobal Parameters
 #--------------------------------------------------------------------------------------------
-UseLocalMap: 0
+UseLocalMap: 1
 UseLoop: 0
 UseViewer: 1
 UseBoW: 0
-UseORB: 0
+UseORB: 1
 UseExistFile: 0
 OnlyTracking: 0
 
@@ -65,14 +65,16 @@ ORBextractor.nLevels: 8
 ORBextractor.iniThFAST: 20
 ORBextractor.minThFAST: 7
 
+ORBextractor.VocPath: /home/tsui/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/ORBvoc.txt
+
 #--------------------------------------------------------------------------------------------
 # SP Parameters
 #--------------------------------------------------------------------------------------------
 # SP Extractor: Number of features per image
 SP.nFeatures: 1000
-SP.ModelPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt
-SP.TrainedPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel
-
+SP.ModelPath: /home/tsui/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt
+SP.TrainedPath: /home/tsui/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel
+SP.VocPath: /home/tsui/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/LFNET500voc.txt
 #--------------------------------------------------------------------------------------------
 # Viewer Parameters
 #--------------------------------------------------------------------------------------------

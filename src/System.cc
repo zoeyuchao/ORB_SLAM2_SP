@@ -29,7 +29,7 @@
 namespace ORB_SLAM2
 {
 //zoe 20190513
-System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+System::System(const string &strSettingsFile, const eSensor sensor):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false), mbUseLocalMap(false), mbUseLoop(false), mbUseBoW(false), mbUseORB(false), mbUseExistFile(false), mbOnlyTracking(false), mbUseViewer(false)
 {
     // Output welcome message
@@ -55,7 +55,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        cerr << "Failed to open settings file at: " << strSettingsFile << endl;
        exit(-1);
     }
-
+    
     int bUseLocalMap = fsSettings["UseLocalMap"];
     int bUseLoop = fsSettings["UseLoop"];
     int bUseViewer = fsSettings["UseViewer"];
@@ -78,6 +78,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mbUseExistFile = true;
     if (bOnlyTracking == 1)
         mbOnlyTracking = true;
+
 
     // turn off the loop or not //zoe 20190511 
     cout << "Loop Mapping is set: " << mbUseLocalMap << endl;
@@ -138,10 +139,11 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     {
         cout << endl << "Loading Caffe Model..." << endl;
         
-        string ModelPath = fsSettings["SP.ModelPath"];//"/home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt";
-        string TrainedPath = fsSettings["SP.TrainedPath"];//"/home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel";
+        string strModelPath = fsSettings["SP.ModelPath"];//"/home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt";
+        string strTrainedPath = fsSettings["SP.TrainedPath"];//"/home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel";
         int SPNum = fsSettings["SP.nFeatures"];
-        mpSuperPoint = new SuperPoint(ModelPath, TrainedPath, SPNum);
+        cout << "Loading model from:" << strModelPath << endl << endl;;
+        mpSuperPoint = new SuperPoint(strModelPath, strTrainedPath, SPNum);
         cout << endl << "Caffe Model loaded!" << endl;
     }
 
@@ -154,11 +156,12 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         if (mbUseORB)
         {
             mpVocabularyORB = new ORBVocabulary();
-            bool bVocLoadORB = mpVocabularyORB->loadFromTextFile(strVocFile);
+            string strVocPath = fsSettings["ORBextractor.VocPath"];
+            bool bVocLoadORB = mpVocabularyORB->loadFromTextFile(strVocPath);
             if(!bVocLoadORB)
             {
                 cerr << "Wrong path to vocabulary. " << endl;
-                cerr << "Falied to open at: " << strVocFile << endl;
+                cerr << "Falied to open at: " << strVocPath << endl;
                 exit(-1);
             }
             cout << "ORB Vocabulary loaded!" << endl << endl;
@@ -172,11 +175,12 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         else
         {
             mpVocabularyLFNet = new LFNETVocabulary();
-            bool bVocLoadLFNet = mpVocabularyLFNet->loadFromTextFile(strVocFile);
+            string strVocPath = fsSettings["SP.VocPath"];
+            bool bVocLoadLFNet = mpVocabularyLFNet->loadFromTextFile(strVocPath);
             if(!bVocLoadLFNet)
             {
                 cerr << "Wrong path to vocabulary. " << endl;
-                cerr << "Falied to open at: " << strVocFile << endl;
+                cerr << "Falied to open at: " << strVocPath << endl;
                 exit(-1);
             }
             cout << "LFNET Vocabulary loaded!" << endl << endl;

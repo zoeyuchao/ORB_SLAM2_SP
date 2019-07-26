@@ -84,15 +84,15 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "SP");
     ros::start();
 
-    if(argc != 3)
+    if(argc != 2)
     {
-        cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_vocabulary path_to_settings" << endl;        
+        cerr << endl << "Usage: rosrun ORB_SLAM2 RGBD path_to_settings" << endl;        
         ros::shutdown();
         return 1;
     }    
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD); //viewer, localmap, loop, bow, orb, existfile, trackonly
+    ORB_SLAM2::System SLAM(argv[1],ORB_SLAM2::System::RGBD); //viewer, localmap, loop, bow, orb, existfile, trackonly
 
     ImageGrabber igb(&SLAM);
 
