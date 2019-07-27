@@ -216,7 +216,7 @@ static float SP_Angle(const cv::Mat& image, cv::KeyPoint& kpt, const vector<int>
 }
 
 //zoe 20181016 SP BOW
-Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const string &strExistPath)
     :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)),mpLFNETvocabulary(voclfnet),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth), mbUseORB(false)
 {
@@ -227,9 +227,6 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     mfScaleFactor = 1.0f; 
     mfLogScaleFactor = log(mfScaleFactor);
     
-    
-    string strLFNetPath = "/dev/shm/tmpSP/";
-    //string strLFNetPath = "/home/tsui/Data/rgbd_dataset_freiburg1_room/SP/";
     int kpts_num = 1000;//超参数,可以根据情况修改 每张照片提取特征点的个数 1000个,目前是跟ORB本身的个数是一样的.
     mnScaleLevels = 5; //超参数
     float Scale[mnScaleLevels] = {1.41421356, 1.18920712, 1.0, 0.84089642, 0.70710678};
@@ -275,13 +272,12 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
     float fkpts[kpts_num][2] = { 0 };//定义一个1000*2的矩阵，用于存放kpts数据
     float ffeats[kpts_num][256] = { 0 };//定义一个1000*256的矩阵，用于存放feats数据
-	//float scale;//暂存尺度
     string strTimeStamp = to_string(mTimeStamp);
     ifstream kptsfile;//定义读取文件流，相对于程序来说是in
     ifstream featsfile;//定义读取文件流，相对于程序来说是in
 
-	kptsfile.open(strLFNetPath + strTimeStamp + "_kpts.txt");//打开文件
-    featsfile.open(strLFNetPath + strTimeStamp + "_feats.txt");//打开文件
+	kptsfile.open(strExistPath + strTimeStamp + "_kpts.txt");//打开文件
+    featsfile.open(strExistPath + strTimeStamp + "_feats.txt");//打开文件
 
     mvKpts.resize(kpts_num);//reserve 不行
     mvDspts.clear();
@@ -291,14 +287,12 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 		for (int j = 0; j < 2; j++)//定义列循环
 		{
 			kptsfile >> fkpts[i][j];//读取一个值（空格、制表符、换行隔开）就写入到矩阵中，行列不断循环进行
-            //std::cout<< fkpts[i][j] << std::endl;
         }
         mvKpts[i].pt.x = fkpts[i][0];
         mvKpts[i].pt.y = fkpts[i][1];
         mvKpts[i].angle = SP_Angle(imGray, mvKpts[i], umax); //20190511 zoe
         mvKpts[i].octave = 0;
         
-        //cout << "LFNet fkpts : " << mvKpts[i].pt << endl;
         std::vector<float> dspt;
         dspt.resize(256);
         for (int j = 0; j < 256; j++)//定义列循环
@@ -352,7 +346,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     AssignFeaturesToGridLFNet();
 }
 
-//zoe 20181016 SP BOW PYTORCH
+//zoe 20181016 SP BOW caffe
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, SuperPoint* pSuperPoint)
     :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)),mpLFNETvocabulary(voclfnet),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth), mbUseORB(false)
@@ -422,7 +416,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 }
 
 //zoe 20190520 SP
-Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
+Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const string &strExistPath)
     :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)), mpLFNETvocabulary(static_cast<LFNETVocabulary*>(NULL)),mpORBextractorLeft(static_cast<ORBextractor*>(NULL)),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),mbUseORB(false)
 {
@@ -432,12 +426,6 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     // Scale Level Info
     mfScaleFactor = 1.0f;//mpORBextractorLeft->GetScaleFactor();    
     mfLogScaleFactor = log(mfScaleFactor);
-
-    // ORB extraction
-    //ExtractORB(0,imGray);
-    //cout << "ORB feats : " << mDescriptors << endl;
-    
-    string strLFNetPath = "/dev/shm/tmpSP/";
     int kpts_num = 1000;//超参数,可以根据情况修改 每张照片提取特征点的个数 1000个,目前是跟ORB本身的个数是一样的.
     mnScaleLevels = 5; //超参数
     float Scale[mnScaleLevels] = {1.41421356, 1.18920712, 1.0, 0.84089642, 0.70710678};
@@ -487,13 +475,9 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     string strTimeStamp = to_string(mTimeStamp);
     ifstream kptsfile;//定义读取文件流，相对于程序来说是in
     ifstream featsfile;//定义读取文件流，相对于程序来说是in
-    //ifstream kptsorifile;//定义读取文件流，相对于程序来说是in
-    //ifstream kptsscalefile;//定义读取文件流，相对于程序来说是in
-    kptsfile.open(strLFNetPath + strTimeStamp + "_kpts.txt");//打开文件
-    featsfile.open(strLFNetPath + strTimeStamp + "_feats.txt");//打开文件
-    //kptsorifile.open(strLFNetPath + strTimeStamp + "_kpts_ori.txt");//打开文件
-    //kptsscalefile.open(strLFNetPath + strTimeStamp + "_kpts_scale.txt");//打开文件
-    
+    kptsfile.open(strExistPath + strTimeStamp + "_kpts.txt");//打开文件
+    featsfile.open(strExistPath + strTimeStamp + "_feats.txt");//打开文件
+   
     mvKpts.resize(kpts_num);//reserve 不行
     mvDspts.clear();
     
@@ -502,20 +486,12 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 	for (int j = 0; j < 2; j++)//定义列循环
 	{
             kptsfile >> fkpts[i][j];//读取一个值（空格、制表符、换行隔开）就写入到矩阵中，行列不断循环进行
-            //std::cout<< fkpts[i][j] << std::endl;
         }
         mvKpts[i].pt.x = fkpts[i][0];
         mvKpts[i].pt.y = fkpts[i][1];
         mvKpts[i].angle = SP_Angle(imGray, mvKpts[i], umax); //20190511 zoe
-        //kptsscalefile >> scale;
-        //for (int k = 0; k < mnScaleLevels; k++ )
-        //{
-        //    if(abs(scale-Scale[k]) < 0.05 )
-        //        mvKpts[i].octave = k;
-        //}
         mvKpts[i].octave = 0;
         
-        //cout << "LFNet fkpts : " << mvKpts[i].pt << endl;
         std::vector<float> dspt;
         dspt.resize(256);
         for (int j = 0; j < 256; j++)//定义列循环
@@ -533,9 +509,6 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     }
     kptsfile.close();//读取完成之后关闭文件
     featsfile.close();//读取完成之后关闭文件
-    //kptsorifile.close();//读取完成之后关闭文件
-    //kptsscalefile.close();//读取完成之后关闭文件
-    
     // 以下为完成相同的功能,仿照函数功能新写一些函数
     
     N = mvKpts.size();//在这里输出过ORB特征点的数量 >=1000,不会少于1000的
@@ -571,7 +544,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     AssignFeaturesToGridLFNet();
 }
 
-//zoe 20190724 SP PYTORCH
+//zoe 20190724 SP caffe
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, SuperPoint* pSuperPoint)
     :mpORBvocabulary(static_cast<ORBVocabulary*>(NULL)), mpLFNETvocabulary(static_cast<LFNETVocabulary*>(NULL)),mpORBextractorLeft(static_cast<ORBextractor*>(NULL)),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth),mbUseORB(false)
@@ -601,11 +574,11 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
         mvInvScaleFactors[i]=1.0f/mvScaleFactors[i];
         mvInvLevelSigma2[i]=1.0f/mvLevelSigma2[i];
     }
-
+    cout << mnId << endl;
     pSuperPoint->ExactSP(imGray, mvKpts, mvDspts);
+	cout << "after" << endl;
 
     // 以下为完成相同的功能,仿照函数功能新写一些函数
-    
     N = mvKpts.size();//在这里输出过ORB特征点的数量 >=1000,不会少于1000的
     if(mvKpts.empty())
         return;

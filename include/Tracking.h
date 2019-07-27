@@ -66,7 +66,7 @@ public:
              KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking);//zoe 20190513 增加最后一个参
     //zoe 20181016
     Tracking(System* pSys, LFNETVocabulary* pVocLFNet, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
-             KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking);// zoe 20190513 增加最后一个参�?    
+             KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking);// zoe 20190513 增加最后一个参�?    
     //zoe 20190520
     Tracking(System* pSys, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, 
              const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB);
@@ -140,6 +140,7 @@ public:
     //std::shared_ptr<torch::jit::script::Module> mpModule;//zoe 20190724
     //float* mpImage;//zoe 20190724
     SuperPoint* mpSuperPoint;//zoe 20190726
+    string mstrExistPath;//zoe 20190727
 
     void Reset();
 

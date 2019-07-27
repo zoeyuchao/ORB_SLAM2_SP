@@ -139,8 +139,8 @@ System::System(const string &strSettingsFile, const eSensor sensor):mSensor(sens
     {
         cout << endl << "Loading Caffe Model..." << endl;
         
-        string strModelPath = fsSettings["SP.ModelPath"];//"/home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt";
-        string strTrainedPath = fsSettings["SP.TrainedPath"];//"/home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel";
+        string strModelPath = fsSettings["SP.ModelPath"];
+        string strTrainedPath = fsSettings["SP.TrainedPath"];
         int SPNum = fsSettings["SP.nFeatures"];
         cout << "Loading model from:" << strModelPath << endl << endl;;
         mpSuperPoint = new SuperPoint(strModelPath, strTrainedPath, SPNum);

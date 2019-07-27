@@ -45,7 +45,7 @@ namespace ORB_SLAM2
 
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),
-    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)),// zoe 20190726
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), mbUseORB(true), mbUseExistFile(false)
 {
     // Load camera parameters from settings file
@@ -149,8 +149,8 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 }
 //zoe 20190719
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),
-    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)),// zoe 20190726
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(true), mbUseExistFile(false)
 {
     // Load camera parameters from settings file
@@ -256,7 +256,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 //zoe 20181016
 Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
-    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)),// zoe 20190726
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),mpLocalMapper(static_cast<LocalMapping*>(NULL)),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(false), mbUseExistFile(true) //zoe 20190513 tracking参数赋值修改
 {
     // Load camera parameters from settings file
@@ -319,29 +319,10 @@ Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrame
     else
         cout << "- color order: BGR (ignored if grayscale)" << endl;
 
-    // Load ORB parameters
-    /*
-    int nFeatures = fSettings["ORBextractor.nFeatures"];
-    float fScaleFactor = fSettings["ORBextractor.scaleFactor"];
-    int nLevels = fSettings["ORBextractor.nLevels"];
-    int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
-    int fMinThFAST = fSettings["ORBextractor.minThFAST"];
-    //zoe 20181019
-    mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
-
-    if(sensor==System::STEREO)
-        mpORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
-
-    if(sensor==System::MONOCULAR)
-        mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
-
-    cout << endl  << "ORB Extractor Parameters: " << endl;
-    cout << "- Number of Features: " << nFeatures << endl;
-    cout << "- Scale Levels: " << nLevels << endl;
-    cout << "- Scale Factor: " << fScaleFactor << endl;
-    cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
-    cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
-    */
+    if (mbUseExistFile)
+    {
+        mstrExistPath = (string)fSettings["SP.ExistPath"];
+    }
     if(sensor==System::STEREO || sensor==System::RGBD)
     {
         mThDepth = mbf*(float)fSettings["ThDepth"]/fx;
@@ -361,7 +342,7 @@ Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrame
  
 //zoe 20190724
 Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, SuperPoint* pSuperPoint, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)), mpLocalMapper(static_cast<LocalMapping*>(NULL)),// zoe 20190726
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpSuperPoint(pSuperPoint),//zoe 20190724
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(false), mbUseExistFile(false) //zoe 20190513 tracking参数赋值修改
 {
@@ -445,7 +426,7 @@ Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrame
 // zoe 20190711
 Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
-    mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)),// zoe 20190726
+    mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(bUseORB), mbUseExistFile(true)//zoe 20190513 tracking参数赋值修改
 {
     // Load camera parameters from settings file
@@ -531,6 +512,11 @@ Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawe
         cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
         cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
     }
+    if (mbUseExistFile)
+    {
+        mstrExistPath = (string)fSettings["SP.ExistPath"];
+    }
+
     
     if(sensor==System::STEREO || sensor==System::RGBD)
     {
@@ -551,7 +537,7 @@ Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawe
 
 // zoe 20190724
 Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, SuperPoint* pSuperPoint, const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)), mpLocalMapper(static_cast<LocalMapping*>(NULL)),// zoe 20190726
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)), mpLocalMapper(static_cast<LocalMapping*>(NULL)),
     mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpSuperPoint(pSuperPoint),//zoe 20190724
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(bUseORB), mbUseExistFile(false) //zoe 20190513 tracking参数赋值修改
 {
@@ -637,6 +623,10 @@ Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawe
         cout << "- Scale Factor: " << fScaleFactor << endl;
         cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
         cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
+    }
+    if (mbUseExistFile)
+    {
+        mstrExistPath = (string)fSettings["SP.ExistPath"];
     }
     
     if(sensor==System::STEREO || sensor==System::RGBD)
@@ -739,7 +729,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
     if (mpLFNETVocabulary)
     {
         if (mbUseExistFile)
-            mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mpLFNETVocabulary, mK, mDistCoef, mbf, mThDepth);
+            mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mpLFNETVocabulary, mK, mDistCoef, mbf, mThDepth, mstrExistPath);
         else
             mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mpORBextractorLeft, mpLFNETVocabulary, mK, mDistCoef, mbf, mThDepth, mpSuperPoint);        
     }
@@ -752,9 +742,11 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
         else
         {
             if (mbUseExistFile)
-                mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mK, mDistCoef, mbf, mThDepth);    
+                mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mK, mDistCoef, mbf, mThDepth, mstrExistPath);    
             else
-                mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mK, mDistCoef, mbf, mThDepth, mpSuperPoint);    
+            {
+                mCurrentFrame = Frame(mImGray, mImDepth, timestamp, mK, mDistCoef, mbf, mThDepth, mpSuperPoint);  
+            }  
         }        
     }
     
@@ -832,7 +824,6 @@ void Tracking::Track()
         {
             // Local Mapping is activated. This is the normal behaviour, unless
             // you explicitly activate the "only tracking" mode.
-            
             if(mState==OK)
             {
                 // Local Mapping might have changed some MapPoints tracked in last frame
@@ -1000,7 +991,6 @@ void Tracking::Track()
             // Check if we need to insert a new keyframe
             if(NeedNewKeyFrame())
                 CreateNewKeyFrame();
-            
             // We allow points with high innovation (considererd outliers by the Huber Function)
             // pass to the new keyframe, so that bundle adjustment will finally decide
             // if they are outliers or not. We don't want next frame to estimate its position
@@ -1109,11 +1099,13 @@ void Tracking::StereoInitialization()
         else
         {
             if (mbUseORB)
+            {
                 pKFini->ComputeBoW();// zoe 20190513
+            }
             else
                 pKFini->ComputeBoWLFNet();// zoe 20190513
         }
-
+        
         mLastFrame = Frame(mCurrentFrame);
         mnLastKeyFrameId=mCurrentFrame.mnId;
         mpLastKeyFrame = pKFini;

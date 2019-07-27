@@ -65,10 +65,10 @@ public:
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
     //zoe 20181016
-    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const string &strExistPath);
     
     //zoe 20190520
-    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const string &strExistPath);
 
     //zoe 20190724
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, SuperPoint* pSuperPoint);
@@ -80,7 +80,7 @@ public:
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
     
     // Constructor for Monocular cameras.
-    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
@@ -249,7 +249,7 @@ private:
     cv::Mat mtcw;
     cv::Mat mRwc;
     cv::Mat mOw; //==mtwc   
-    //这里的Ow其实是世界坐标系(第一�?原点(相机光心)在当前帧参考系(相机坐标�?中的坐标
+    //这里的Ow其实是世界坐标系(第一�?原点(相机光心)在当前帧参考系(相机坐标�?中的坐标
     //等价于twc,运行ORB界面上有个Follow Camera选项，选上后，相机在界面中的位置固定，
     //这是就需要这个Ow来计算第一帧的坐标，而不能错误地理解为当前相机在世界参考系下的坐标
 };

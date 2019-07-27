@@ -4,10 +4,10 @@
 # Gobal Parameters
 #--------------------------------------------------------------------------------------------
 UseLocalMap: 1
-UseLoop: 0
+UseLoop: 1
 UseViewer: 1
-UseBoW: 0
-UseORB: 1
+UseBoW: 1
+UseORB: 0
 UseExistFile: 0
 OnlyTracking: 0
 
@@ -75,6 +75,7 @@ SP.nFeatures: 1000
 SP.ModelPath: /home/tsui/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt
 SP.TrainedPath: /home/tsui/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel
 SP.VocPath: /home/tsui/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/LFNET500voc.txt
+SP.ExistPath: /home/tsui/Data/rgbd_dataset_freiburg1_room/SP/
 #--------------------------------------------------------------------------------------------
 # Viewer Parameters
 #--------------------------------------------------------------------------------------------

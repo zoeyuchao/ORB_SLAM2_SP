@@ -16,6 +16,8 @@ SuperPoint::SuperPoint(const std::string& model_file, const std::string& trained
     caffe::Blob<float>* input_layer = net_->input_blobs()[0];
     num_channels_ = input_layer->channels();
     input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
+    width_ = input_layer->width();
+    height_ = input_layer->height();
 }
 
 void SuperPoint::WrapInputLayer(std::vector<cv::Mat>* input_channels)
@@ -23,8 +25,6 @@ void SuperPoint::WrapInputLayer(std::vector<cv::Mat>* input_channels)
 
     caffe::Blob<float>* input_layer = net_->input_blobs()[0];
 
-    width_ = input_layer->width();
-    height_ = input_layer->height();
     float* input_data = input_layer->mutable_cpu_data();
     for (int i = 0; i < input_layer->channels(); ++i)
     {
@@ -60,6 +60,7 @@ void SuperPoint::Preprocess(const cv::Mat& img, std::vector<cv::Mat>* input_chan
         sample_resized.convertTo(sample_float, CV_32FC3);
     else
         sample_resized.convertTo(sample_float, CV_32FC1);
+    sample_float /= 255.0;
     cv::split(sample_float, *input_channels);
 }
 
@@ -89,7 +90,6 @@ void SuperPoint::TopK(std::vector<point>& input_arr, int32_t n, int32_t k)
 float SuperPoint::SP_Angle(const cv::Mat& image, cv::KeyPoint& kpt, const std::vector<int>& u_max)
 {
     int m_01 = 0, m_10 = 0;
-
     const uchar* center = &image.at<uchar> (cvRound(kpt.pt.y), cvRound(kpt.pt.x));
 
     // Treat the center line differently, v=0
@@ -98,6 +98,7 @@ float SuperPoint::SP_Angle(const cv::Mat& image, cv::KeyPoint& kpt, const std::v
 
     // Go line by line in the circuI853lar patch
     int step = (int)image.step1();
+	
     for (int v = 1; v <= HALF_PATCH_SIZE_SP; ++v)
     {
         // Proceed over the two lines
@@ -111,12 +112,14 @@ float SuperPoint::SP_Angle(const cv::Mat& image, cv::KeyPoint& kpt, const std::v
         }
         m_01 += v * v_sum;
     }
-
+	
     return cv::fastAtan2((float)m_01, (float)m_10);
 }
 
 int SuperPoint::ExactSP(const cv::Mat& image, std::vector<cv::KeyPoint>& kpts, std::vector<std::vector<float> >& dspts)
 {
+    cv::Mat image_angle;
+    image_angle = image.clone();
     //This is for orientation
     // pre-compute the end of a row in a circular patch
     std::vector<int> umax;
@@ -140,16 +143,16 @@ int SuperPoint::ExactSP(const cv::Mat& image, std::vector<cv::KeyPoint>& kpts, s
     caffe::Blob<float>* input_layer = net_->input_blobs()[0];
 
     input_layer->Reshape(1, num_channels_, input_geometry_.height, input_geometry_.width);
-
+    
     net_->Reshape();
-
+    
     std::vector<cv::Mat> input_channels;
     WrapInputLayer(&input_channels);
 
     Preprocess(image, &input_channels);
-
+    
     net_->Forward();
-
+    
     std::vector< caffe::Blob<float>* > output_layers = net_->output_blobs();
 
     float* result_semi = output_layers[0]->mutable_cpu_data();
@@ -161,14 +164,16 @@ int SuperPoint::ExactSP(const cv::Mat& image, std::vector<cv::KeyPoint>& kpts, s
     {
         for(int j=0; j<width_/Cell; j++)
         {
-            //semi softmax
             for(int kh=0; kh<Cell; kh++) 
-                for(int kw=0; kw<Cell; kw++) 
-                    semi[kh+i*Cell][kw+j*Cell] = result_semi[kw+kh*Cell+j*Feature_Length+i*Feature_Length*width_/Cell];
+                for(int kw=0; kw<Cell; kw++)
+	            if (( kh+i*Cell <= HALF_PATCH_SIZE_SP+1 ) || ( kh+i*Cell >= height_ - HALF_PATCH_SIZE_SP - 1) || ( kw+j*Cell <= HALF_PATCH_SIZE_SP+1 ) || ( kw+j*Cell >= width_ - HALF_PATCH_SIZE_SP - 1)){
+			semi[kh+i*Cell][kw+j*Cell] = -1.;
+		    }else{
+                    	semi[kh+i*Cell][kw+j*Cell] = result_semi[kw+kh*Cell+j*Feature_Length+i*Feature_Length*width_/Cell];
+		    }
         }
     }
     std::vector<point> tmp_point;
-    
     //NMS
     for(int i=0; i<height_; i++) 
     {
@@ -196,30 +201,24 @@ int SuperPoint::ExactSP(const cv::Mat& image, std::vector<cv::KeyPoint>& kpts, s
     dspts.clear();
     kpts.clear();
     kpts.resize(tmp_point.size());
+    
     for(int i=0; i<tmp_point.size(); i++) 
     {
         kpts[i].pt.x = tmp_point[i].W;
         kpts[i].pt.y = tmp_point[i].H;
-        kpts[i].angle = SP_Angle(image, kpts[i], umax); //20190511 zoe
+
+        kpts[i].angle = SP_Angle(image_angle, kpts[i], umax); //20190511 zoe
         kpts[i].octave = 0;
 
         std::vector<float> dspt;
         dspt.resize(D);
         int x1 = int(tmp_point[i].W / Cell);
         int x2 = int(tmp_point[i].H / Cell);
-        for (int j = 0; j < D; j++)//
+        for (int j = 0; j < D; j++)
         {
-			float tempdspt = result_desc[x1*D + x2*(D*width_/Cell) +j];       
-            if(tempdspt < -0.5)
-                dspt[j] = -0.5;//0
-            else if(tempdspt > 0.5)
-                dspt[j] = 0.5;//255
-            else
-                dspt[j] = tempdspt;
-            
+	        dspt[j]  = result_desc[x1*D + x2*(D*width_/Cell) +j];            
         }
         dspts.push_back(dspt);
     }
     return 0;
-
 }
