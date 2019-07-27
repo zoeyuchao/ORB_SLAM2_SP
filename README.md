@@ -50,6 +50,8 @@
 - 如果选择采用UseExistFile，则需要提前下载离线数据集，[链接](链接：https://pan.baidu.com/s/1TIuS7voxUUHdXP6Jv8X8jA 
 )（提取码：2vfm ）放在`~/Data/`下，这里注意默认是1000个特征点，描述子长度是256。
 
+- 若使用SP，则从下面的[链接](https://pan.baidu.com/s/1C1dFLPhTMbhjGQWt-K_39w  )(提取码：ew2r )里把字典下载下来，并且在ORB_SLAM2_SP目录下进行解压。
+
 - 测试用的是TUM.launch文件，执行命令是
 
   ```Shell
