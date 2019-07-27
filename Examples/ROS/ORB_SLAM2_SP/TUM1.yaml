@@ -1,6 +1,17 @@
 %YAML:1.0
 
 #--------------------------------------------------------------------------------------------
+# Gobal Parameters
+#--------------------------------------------------------------------------------------------
+UseLocalMap: 1
+UseLoop: 1
+UseViewer: 0
+UseBoW: 1
+UseORB: 1
+UseExistFile: 0
+OnlyTracking: 0
+
+#--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
 #--------------------------------------------------------------------------------------------
 
@@ -54,6 +65,17 @@ ORBextractor.nLevels: 8
 ORBextractor.iniThFAST: 20
 ORBextractor.minThFAST: 7
 
+ORBextractor.VocPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/ORBvoc.txt
+
+#--------------------------------------------------------------------------------------------
+# SP Parameters
+#--------------------------------------------------------------------------------------------
+# SP Extractor: Number of features per image
+SP.nFeatures: 1000
+SP.ModelPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt
+SP.TrainedPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel
+SP.VocPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/LFNET500voc.txt
+SP.ExistPath: /home/yuchao/Data/rgbd_dataset_freiburg1_room/SP/
 #--------------------------------------------------------------------------------------------
 # Viewer Parameters
 #--------------------------------------------------------------------------------------------

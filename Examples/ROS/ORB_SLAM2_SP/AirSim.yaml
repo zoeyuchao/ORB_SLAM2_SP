@@ -1,4 +1,14 @@
 %YAML:1.0
+#--------------------------------------------------------------------------------------------
+# Gobal Parameters
+#--------------------------------------------------------------------------------------------
+UseLocalMap: 0
+UseLoop: 0
+UseViewer: 1
+UseBoW: 0
+UseORB: 0
+UseExistFile: 0
+OnlyTracking: 0
 
 #--------------------------------------------------------------------------------------------
 # Camera Parameters. Adjust them!
@@ -54,16 +64,24 @@ ORBextractor.iniThFAST: 20
 ORBextractor.minThFAST: 7
 
 #--------------------------------------------------------------------------------------------
+# SP Parameters
+#--------------------------------------------------------------------------------------------
+# SP Extractor: Number of features per image
+SP.nFeatures: 1000
+SP.ModelPath: /home/tsui/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt
+SP.TrainedPath: /home/tsui/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel
+
+#--------------------------------------------------------------------------------------------
 # Viewer Parameters
 #--------------------------------------------------------------------------------------------
 Viewer.KeyFrameSize: 0.05
 Viewer.KeyFrameLineWidth: 1
 Viewer.GraphLineWidth: 0.9
-Viewer.PointSize:2
+Viewer.PointSize: 2
 Viewer.CameraSize: 0.08
 Viewer.CameraLineWidth: 3
 Viewer.ViewpointX: 0
 Viewer.ViewpointY: -0.7
 Viewer.ViewpointZ: -1.8
 Viewer.ViewpointF: 500
-
+PointCloudMapping.Resolution: 0.05

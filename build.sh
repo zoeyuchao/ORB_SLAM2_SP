@@ -23,7 +23,16 @@ cd Vocabulary
 tar -xf ORBvoc.txt.tar.gz
 cd ..
 
-echo "Configuring and building ORB_SLAM2 ..."
+echo "Configuring and building ORB_SLAM2_SP ..."
+
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j
+
+cd ../Examples/ROS/ORB_SLAM2_SP/
+
+echo "Configuring and building ORB_SLAM2_SP_ROS ..."
 
 mkdir build
 cd build

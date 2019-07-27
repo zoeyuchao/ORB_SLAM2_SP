@@ -62,16 +62,16 @@ public:
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
     //zoe 20181016
-    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const string &strExistPath);
     
     //zoe 20190520
-    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
+    Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, const string &strExistPath);
 
     //zoe 20190724
-    //Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage);
+    //Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, LFNETVocabulary* voclfnet, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule);
     
     //zoe 20190724
-    //Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule, float *pImage);
+    //Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, std::shared_ptr<torch::jit::script::Module> pModule);
 
    //zoe 20190721
     Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);

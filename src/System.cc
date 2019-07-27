@@ -29,9 +29,8 @@
 namespace ORB_SLAM2
 {
 //zoe 20190513
-System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer, const bool bUseLocalMap, const bool bUseLoop, const bool bUseBow, const bool bUseORB, const bool bUseExistFile, const bool bOnlyTracking):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
-        mbDeactivateLocalizationMode(false), mbUseLocalMap(bUseLocalMap), mbUseLoop(bUseLoop), mbUseBoW(bUseBow), mbUseORB(bUseORB), mbUseExistFile(bUseExistFile), mbOnlyTracking(bOnlyTracking)
+System::System(const string &strSettingsFile, const eSensor sensor):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopCloser(static_cast<LoopClosing*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
+        mbDeactivateLocalizationMode(false), mbUseLocalMap(false), mbUseLoop(false), mbUseBoW(false), mbUseORB(false), mbUseExistFile(false), mbOnlyTracking(false), mbUseViewer(false)
 {
     // Output welcome message
     cout << endl <<
@@ -58,8 +57,34 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     }
     
     // turn off the loop or not //zoe 20190511 
+    int bUseLocalMap = fsSettings["UseLocalMap"];
+    int bUseLoop = fsSettings["UseLoop"];
+    int bUseViewer = fsSettings["UseViewer"];
+    int bUseBoW = fsSettings["UseBoW"];
+    int bUseORB = fsSettings["UseORB"];
+    int bUseExistFile = fsSettings["UseExistFile"];
+    int bOnlyTracking = fsSettings["OnlyTracking"];
+
+    if (bUseLocalMap == 1)
+        mbUseLocalMap = true;
+    if (bUseLoop == 1)
+        mbUseLoop = true;
+    if (bUseViewer == 1)
+        mbUseViewer = true;
+    if (bUseBoW == 1)
+        mbUseBoW = true;
+    if (bUseORB == 1)
+        mbUseORB = true;
+    if (bUseExistFile == 1)
+        mbUseExistFile = true;
+    if (bOnlyTracking == 1)
+        mbOnlyTracking = true;
+
+
+    // turn off the loop or not //zoe 20190511 
     cout << "Loop Mapping is set: " << mbUseLocalMap << endl;
     cout << "Loop Closing is set: " << mbUseLoop << endl;
+    cout << "Viewer is set: " << mbUseViewer << endl;
     cout << "Use BoW is set: " << mbUseBoW << endl;
     cout << "Use ORB is set: " << mbUseORB << endl;
     cout << "Use ExistFile is set: " << mbUseExistFile << endl;
@@ -77,11 +102,13 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     if (mbUseORB && mbUseExistFile)
     {
         cout << "ORB and ExistFile can not be true together, so use ORB is chosen first！" << endl;
+        mbUseExistFile = false;
     }
 
     if (mbUseLoop && !mbUseBoW)
     {
         cout << "Loop needs BoW, so Loop will be closed！" << endl;
+        mbUseLoop = false;
     }
     /*
     if (!mbUseORB && !mbUseExistFile)
@@ -91,20 +118,6 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         mpModule = torch::jit::load("model/modelSP_fuse.pt");
         mpModule->to(at::kCUDA);
         assert(mpModule != nullptr);
-
-        int Height = fsSettings["Camera.height"];//480;
-        int Width = fsSettings["Camera.width"];//640;
-        if(Height != 480 || Width != 640)
-        {
-            Height = 480;
-            Width = 640;
-            cout << "Detect different image size, check resize!" << endl;
-        }
-        mpImage = new float [1*1*Height*Width];
-        
-        std::ifstream inpfile("model/inp.qwe", std::ios::binary);
-        inpfile.read((char*)mpImage, 1*1*Height*Width*sizeof(float));
-        inpfile.close();
 
         cout << endl << "Pytorch Model loaded!" << endl;
     }
@@ -118,11 +131,12 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         if (mbUseORB)
         {
             mpVocabularyORB = new ORBVocabulary();
-            bool bVocLoadORB = mpVocabularyORB->loadFromTextFile(strVocFile);
+            string strVocPath = fsSettings["ORBextractor.VocPath"];
+            bool bVocLoadORB = mpVocabularyORB->loadFromTextFile(strVocPath);
             if(!bVocLoadORB)
             {
                 cerr << "Wrong path to vocabulary. " << endl;
-                cerr << "Falied to open at: " << strVocFile << endl;
+                cerr << "Falied to open at: " << strVocPath << endl;
                 exit(-1);
             }
             cout << "ORB Vocabulary loaded!" << endl << endl;
@@ -136,14 +150,15 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         else
         {
             mpVocabularyLFNet = new LFNETVocabulary();
-            bool bVocLoadLFNet = mpVocabularyLFNet->loadFromTextFile(strVocFile);
+            string strVocPath = fsSettings["SP.VocPath"];
+            bool bVocLoadLFNet = mpVocabularyLFNet->loadFromTextFile(strVocPath);
             if(!bVocLoadLFNet)
             {
                 cerr << "Wrong path to vocabulary. " << endl;
-                cerr << "Falied to open at: " << strVocFile << endl;
+                cerr << "Falied to open at: " << strVocPath << endl;
                 exit(-1);
             }
-            cout << "LFNET Vocabulary loaded!" << endl << endl;
+            cout << "SP Vocabulary loaded!" << endl << endl;
 
             //Create KeyFrame Database
             mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabularyLFNet, mbUseORB);// zoe database名字没改
@@ -152,16 +167,21 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
                 mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer, 
                                 mpMap, mpKeyFrameDatabase, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking); //zoe 20190513 增加tracking参数
             //else
-                //mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer, mpMap, mpKeyFrameDatabase, mpPointCloudMapping, mpModule, mpImage, strSettingsFile, mSensor, mbOnlyTracking); //zoe 2019724 增加pytorch参数
+                //mpTracker = new Tracking(this, mpVocabularyLFNet, mpFrameDrawer, mpMapDrawer, mpMap, mpKeyFrameDatabase, mpPointCloudMapping, mpModule, strSettingsFile, mSensor, mbOnlyTracking); //zoe 2019724 增加pytorch参数
             
         }
     }
     else
     {
-        if (mbUseExistFile)
-            mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking, mbUseORB); //zoe 20190520
-        //else
-            //mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, mpModule, mpImage, strSettingsFile, mSensor, mbOnlyTracking, mbUseORB); //zoe 20190724
+        if (mbUseORB)
+            mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking, mbUseORB);
+        else
+        {
+            if (mbUseExistFile)
+                mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, strSettingsFile, mSensor, mbOnlyTracking, mbUseORB); //zoe 20190520
+            //else
+                //mpTracker = new Tracking(this, mpFrameDrawer, mpMapDrawer, mpMap, mpPointCloudMapping, mpModule, strSettingsFile, mSensor, mbOnlyTracking, mbUseORB); //zoe 20190724
+        }
         
     }
     //Initialize the Local Mapping thread and launch
@@ -188,7 +208,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     }
 
     //Initialize the Viewer thread and launch
-    if(bUseViewer)
+    if(mbUseViewer)
     {
         mpViewer = new Viewer(this, mpFrameDrawer, mpMapDrawer, mpTracker, strSettingsFile, mbOnlyTracking);
         mptViewer = new thread(&Viewer::Run, mpViewer);

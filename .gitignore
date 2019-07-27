@@ -17,7 +17,9 @@ Examples/Stereo/stereo_kitti
 Thirdparty/DBoW2/build/
 Thirdparty/g2o/build/
 
-Vocabulary/
+Vocabulary/create_voc
+Vocabulary/LFNET500voc.txt
+Vocabulary/ORBvoc.txt
 build/
 
 
@@ -26,3 +28,9 @@ lib/
 
 KeyFrameTrajectory.txt
 CameraTrajectory.txt
+eval_script/ORB/
+eval_script/SP/
+eval_script/png/
+eval_script/txt/
+eval_script/LFNET1000/
+eval_script/LFNET500/
