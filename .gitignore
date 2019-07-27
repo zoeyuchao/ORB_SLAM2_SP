@@ -27,3 +27,9 @@ lib/
 
 KeyFrameTrajectory.txt
 CameraTrajectory.txt
+eval_script/ORB/
+eval_script/SP/
+eval_script/png/
+eval_script/txt/
+eval_script/LFNET1000/
+eval_script/LFNET500/
