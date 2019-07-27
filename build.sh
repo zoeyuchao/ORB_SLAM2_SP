@@ -1,3 +1,5 @@
+source environment.txt
+
 echo "Configuring and building Thirdparty/DBoW2 ..."
 
 cd Thirdparty/DBoW2
@@ -26,7 +28,16 @@ make -j
 
 cd ../../../
 
-echo "Configuring and building ORB_SLAM2 ..."
+echo "Configuring and building ORB_SLAM2_SP ..."
+
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j
+
+cd ../Examples/ROS/ORB_SLAM2_SP/
+
+echo "Configuring and building ORB_SLAM2_SP_ROS ..."
 
 mkdir build
 cd build

@@ -49,7 +49,7 @@ ${PROJECT_SOURCE_DIR}/../../../include
 ${PROJECT_SOURCE_DIR}/../../../Thirdparty/superpoint/include/
 ${Pangolin_INCLUDE_DIRS}
 ${PCL_INCLUDE_DIRS}
-/home/yuchao/caffe-ssd/include/ 
+~/caffe-ssd/include/ 
 /usr/local/include 
 /usr/local/cuda/include
 )
@@ -63,7 +63,7 @@ ${PROJECT_SOURCE_DIR}/../../../Thirdparty/g2o/lib/libg2o.so
 ${PROJECT_SOURCE_DIR}/../../../Thirdparty/superpoint/lib/libsuperpoint.so
 ${PROJECT_SOURCE_DIR}/../../../lib/libORB_SLAM2_SP.so
 /usr/lib/x86_64-linux-gnu/libboost_system.so
-/home/yuchao/caffe-ssd/build/lib/libcaffe.so
+~/caffe-ssd/build/lib/libcaffe.so
 /usr/lib/x86_64-linux-gnu/libglog.so
 ${PCL_LIBRARIES}
 )
