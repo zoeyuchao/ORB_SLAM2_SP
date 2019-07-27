@@ -17,7 +17,8 @@ Examples/Stereo/stereo_kitti
 Thirdparty/DBoW2/build/
 Thirdparty/g2o/build/
 
-Vocabulary/
+Vocabulary/create_voc
+Vocabulary/LFNET500voc.txt
 build/
 
 
