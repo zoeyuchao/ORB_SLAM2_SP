@@ -62,7 +62,7 @@ ORBextractor.nLevels: 8
 # You can lower these values if your images have low contrast			
 ORBextractor.iniThFAST: 20
 ORBextractor.minThFAST: 7
-
+ORBextractor.VocPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/ORBvoc.txt
 #--------------------------------------------------------------------------------------------
 # SP Parameters
 #--------------------------------------------------------------------------------------------
@@ -70,6 +70,7 @@ ORBextractor.minThFAST: 7
 SP.nFeatures: 1000
 SP.ModelPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt
 SP.TrainedPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel
+SP.VocPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/LFNET500voc.txt
 
 #--------------------------------------------------------------------------------------------
 # Viewer Parameters

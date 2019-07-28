@@ -65,17 +65,17 @@ ORBextractor.nLevels: 8
 ORBextractor.iniThFAST: 20
 ORBextractor.minThFAST: 7
 
-ORBextractor.VocPath: ~/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/ORBvoc.txt
+ORBextractor.VocPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/ORBvoc.txt
 
 #--------------------------------------------------------------------------------------------
 # SP Parameters
 #--------------------------------------------------------------------------------------------
 # SP Extractor: Number of features per image
 SP.nFeatures: 1000
-SP.ModelPath: ~/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt
-SP.TrainedPath: ~/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel
-SP.VocPath: ~/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/LFNET500voc.txt
-SP.ExistPath: ~/Data/rgbd_dataset_freiburg1_room/SP/
+SP.ModelPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.prototxt
+SP.TrainedPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Model/superpoint.caffemodel
+SP.VocPath: /home/yuchao/catkin_ws/src/ORB_SLAM2_SP/Vocabulary/LFNET500voc.txt
+SP.ExistPath: /home/yuchao/Data/rgbd_dataset_freiburg1_room/SP/
 #--------------------------------------------------------------------------------------------
 # Viewer Parameters
 #--------------------------------------------------------------------------------------------

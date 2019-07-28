@@ -36,37 +36,11 @@ endif()
 
 include_directories(
 ${PROJECT_SOURCE_DIR}/include/
-~/caffe-ssd/include/ 
+/home/yuchao/caffe-ssd/include/ 
 /usr/local/include 
 /usr/local/cuda/include
 ) 
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
-SET(SRC_LIST src/SuperPoint.cpp)
-add_library(${PROJECT_NAME} SHARED ${SRC_LIST}) 
 
-target_link_libraries(${PROJECT_NAME}
-${OpenCV_LIBS}
-~/caffe-ssd/build/lib/libcaffe.so
-/usr/lib/x86_64-linux-gnu/libglog.so
-/usr/lib/x86_64-linux-gnu/libboost_system.so
-)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#add_executable(main src/classification.cpp)
-#target_link_libraries(main "${OpenCV_LIBRARIES}")
-#target_link_libraries(main "libexampleapp.so")
-#set_property(TARGET main PROPERTY CXX_STANDARD 11)
+ADD_SUBDIRECTORY(src)
+ADD_SUBDIRECTORY(example)

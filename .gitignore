@@ -16,9 +16,11 @@ Examples/Stereo/stereo_euroc
 Examples/Stereo/stereo_kitti
 Thirdparty/DBoW2/build/
 Thirdparty/g2o/build/
+Thirdparty/superpoint/build/
 
 Vocabulary/create_voc
 Vocabulary/LFNET500voc.txt
+Vocabulary/ORBvoc.txt
 build/
 
 
