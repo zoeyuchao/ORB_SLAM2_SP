@@ -39,6 +39,7 @@ ${PROJECT_SOURCE_DIR}/include/
 /home/yuchao/caffe-ssd/include/ 
 /usr/local/include 
 /usr/local/cuda/include
+${Opencv_INCLUDE_DIR}
 ) 
 
 

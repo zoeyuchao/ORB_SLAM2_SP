@@ -1,0 +1,7 @@
+<launch>  
+
+	<!-- orb slam  -->
+	<node pkg="ORB_SLAM2_SP" name="AIRSIM" type="AIRSIM" args="$(find ORB_SLAM2_SP)/Airsim.yaml /home/yuchao/Data/SLAM" output="screen" />
+
+	
+</launch>
