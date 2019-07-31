@@ -79,6 +79,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 {
     // Frame ID
     mnId=nNextId++;
+    cout << mnId << endl;
 
     // Scale Level Info
     mnScaleLevels = mpORBextractorLeft->GetLevels();
@@ -137,6 +138,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 {
     // Frame ID
     mnId=nNextId++;
+    cout << mnId << endl;
 
     // Scale Level Info
     mnScaleLevels = mpORBextractorLeft->GetLevels();
@@ -222,6 +224,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 {
     // Frame ID
     mnId=nNextId++;
+    cout << mnId << endl;
 
     // Scale Level Info
     mfScaleFactor = 1.0f; 
@@ -353,6 +356,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 {
     // Frame ID
     mnId=nNextId++;
+    cout << mnId << endl;
 
     // Scale Level Info
     mfScaleFactor = 1.0f; 
@@ -422,6 +426,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 {
     // Frame ID
     mnId=nNextId++;
+    cout << mnId << endl;
 
     // Scale Level Info
     mfScaleFactor = 1.0f;//mpORBextractorLeft->GetScaleFactor();    
@@ -576,7 +581,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     }
     cout << mnId << endl;
     pSuperPoint->ExactSP(imGray, mvKpts, mvDspts);
-	cout << "after" << endl;
+	
 
     // 以下为完成相同的功能,仿照函数功能新写一些函数
     N = mvKpts.size();//在这里输出过ORB特征点的数量 >=1000,不会少于1000的
@@ -619,6 +624,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 {
     // Frame ID
     mnId=nNextId++;
+    cout << mnId << endl;
 
     // Scale Level Info
     mnScaleLevels = mpORBextractorLeft->GetLevels();
@@ -673,6 +679,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 {
     // Frame ID
     mnId=nNextId++;
+    cout << mnId << endl;
 
     // Scale Level Info
     mnScaleLevels = mpORBextractorLeft->GetLevels();

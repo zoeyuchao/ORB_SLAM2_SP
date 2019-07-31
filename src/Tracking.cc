@@ -45,7 +45,7 @@ namespace ORB_SLAM2
 
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),
-    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)),
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)), mpLoopClosing(static_cast<LoopClosing*>(NULL)),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), mbUseORB(true), mbUseExistFile(false)
 {
     // Load camera parameters from settings file
@@ -150,7 +150,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 //zoe 20190719
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpORBVocabulary(pVoc), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),
-    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),mpLoopClosing(static_cast<LoopClosing*>(NULL)),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(true), mbUseExistFile(false)
 {
     // Load camera parameters from settings file
@@ -256,7 +256,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
 //zoe 20181016
 Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
-    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),mpLocalMapper(static_cast<LocalMapping*>(NULL)),
+    mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopClosing(static_cast<LoopClosing*>(NULL)),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(false), mbUseExistFile(true) //zoe 20190513 tracking参数赋值修改
 {
     // Load camera parameters from settings file
@@ -342,7 +342,7 @@ Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrame
  
 //zoe 20190724
 Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, boost::shared_ptr<PointCloudMapping> pPointCloud, SuperPoint* pSuperPoint, const string &strSettingPath, const int sensor, const bool bOnlyTracking):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(pVocLFNet), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopClosing(static_cast<LoopClosing*>(NULL)),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpSuperPoint(pSuperPoint),//zoe 20190724
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(false), mbUseExistFile(false) //zoe 20190513 tracking参数赋值修改
 {
@@ -426,7 +426,7 @@ Tracking::Tracking(System *pSys, LFNETVocabulary* pVocLFNet, FrameDrawer *pFrame
 // zoe 20190711
 Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)),
-    mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)),
+    mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopClosing(static_cast<LoopClosing*>(NULL)),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(bUseORB), mbUseExistFile(true)//zoe 20190513 tracking参数赋值修改
 {
     // Load camera parameters from settings file
@@ -537,7 +537,7 @@ Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawe
 
 // zoe 20190724
 Tracking::Tracking(System *pSys, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, boost::shared_ptr<PointCloudMapping> pPointCloud, SuperPoint* pSuperPoint, const string &strSettingPath, const int sensor, const bool bOnlyTracking, const bool bUseORB):
-    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)), mpLocalMapper(static_cast<LocalMapping*>(NULL)),
+    mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(bOnlyTracking), mbVO(false), mpLFNETVocabulary(static_cast<LFNETVocabulary*>(NULL)), mpORBVocabulary(static_cast<ORBVocabulary*>(NULL)), mpLocalMapper(static_cast<LocalMapping*>(NULL)),mpLoopClosing(static_cast<LoopClosing*>(NULL)),
     mpKeyFrameDB(static_cast<KeyFrameDatabase*>(NULL)), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL), mpSuperPoint(pSuperPoint),//zoe 20190724
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mpPointCloudMapping(pPointCloud), mnLastRelocFrameId(0), mbUseORB(bUseORB), mbUseExistFile(false) //zoe 20190513 tracking参数赋值修改
 {
@@ -835,11 +835,12 @@ void Tracking::Track()
                 }
                 else
                 {
-                    
                     bOK = TrackWithMotionModel();
                     
                     if(!bOK)
+                    {
                         bOK = TrackReferenceKeyFrame();
+                    }
                 }
                 
             }
@@ -943,7 +944,9 @@ void Tracking::Track()
         }
 
         if(bOK)
+        {
             mState = OK;
+        }
         else
         {
             mState=LOST;
@@ -979,6 +982,7 @@ void Tracking::Track()
                         mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
                     }
             }
+            
             
             // Delete temporal MapPoints
             for(list<MapPoint*>::iterator lit = mlpTemporalPoints.begin(), lend =  mlpTemporalPoints.end(); lit!=lend; lit++)
@@ -1368,7 +1372,6 @@ bool Tracking::TrackReferenceKeyFrame()
             nmatches = matcher.SearchByBFLFNet(mpReferenceKF,mCurrentFrame,vpMapPointMatches);
     }
     
-    
     if(nmatches<15)
         return false;
 
@@ -1558,12 +1561,14 @@ bool Tracking::TrackLocalMap()
     mnMatchesInliers = 0;
 
     // Update MapPoints Statistics
+    int temp = 0;
     for(int i=0; i<mCurrentFrame.N; i++)
     {
         if(mCurrentFrame.mvpMapPoints[i])
         {
             if(!mCurrentFrame.mvbOutlier[i])
             {
+                temp++;
                 mCurrentFrame.mvpMapPoints[i]->IncreaseFound();
                 if(!mbOnlyTracking)
                 {
@@ -1578,6 +1583,7 @@ bool Tracking::TrackLocalMap()
 
         }
     }
+
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
@@ -2127,7 +2133,7 @@ bool Tracking::Relocalization()
                         if (mbUseORB)
                             nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);//zoe 20181017
                         else
-                            nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,FLOAT_MAX/2);
+                            nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,100); //zoe 20190731
                         
                         if(nadditional+nGood>=50)
                         {
@@ -2144,7 +2150,7 @@ bool Tracking::Relocalization()
                                 if (mbUseORB)
                                     nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20181017
                                 else
-                                    nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,FLOAT_MAX/6);
+                                    nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,64); //zoe 20190731
 
                                 // Final optimization
                                 if(nGood+nadditional>=50)
@@ -2292,7 +2298,7 @@ bool Tracking::Relocalization()
                         if (mbUseORB)
                             nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);//zoe 20181017
                         else
-                            nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,FLOAT_MAX/2);
+                            nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,10,100);// zoe 20190731
                         
                         if(nadditional+nGood>=50)
                         {
@@ -2310,7 +2316,7 @@ bool Tracking::Relocalization()
                                 if (mbUseORB)
                                     nadditional =matcher2.SearchByProjection(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20181017
                                 else
-                                    nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,FLOAT_MAX/6);
+                                    nadditional =matcher2.SearchByProjectionLFNet(mCurrentFrame,vpCandidateKFs[i],sFound,3,64);//zoe 20190731
 
                                 // Final optimization
                                 if(nGood+nadditional>=50)
@@ -2354,12 +2360,16 @@ void Tracking::Reset()
 {
 
     cout << "System Reseting" << endl;
-    if(mpViewer)
+
+    if(mpViewer!=NULL)
     {
+        cout << "Reseting Viewer...";
         mpViewer->RequestStop();
         while(!mpViewer->isStopped())
             usleep(3000);
+        cout << " done" << endl;
     }
+    
 
     // Reset Local Mapping
     if (mpLocalMapper)
@@ -2391,13 +2401,13 @@ void Tracking::Reset()
     KeyFrame::nNextId = 0;
     Frame::nNextId = 0;
     mState = NO_IMAGES_YET;
-
+    
     if(mpInitializer)
     {
         delete mpInitializer;
         mpInitializer = static_cast<Initializer*>(NULL);
     }
-
+    
     mlRelativeFramePoses.clear();
     mlpReferences.clear();
     mlFrameTimes.clear();
@@ -2405,6 +2415,7 @@ void Tracking::Reset()
 
     if(mpViewer)
         mpViewer->Release();
+    cout << "Reseting is done！" << endl;
 }
 
 void Tracking::ChangeCalibration(const string &strSettingPath)

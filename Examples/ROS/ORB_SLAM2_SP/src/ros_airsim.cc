@@ -31,9 +31,9 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "AIRSIM");
     ros::start();
    
-    if(argc != 4)
+    if(argc != 3)
     {
-        cerr << endl << "Usage: AIRSIM path_to_settings path_to_sequence path_to_association " << endl;
+        cerr << endl << "Usage: AIRSIM path_to_settings path_to_sequence " << endl;
         return 1;
     }
 
@@ -56,19 +56,21 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(50);
     ros::NodeHandle nh;
     
-    CamPose_Pub = nh.advertise<geometry_msgs::PoseStamped>("/Camera_Pose",1);
+    CamPose_Pub = nh.advertise<geometry_msgs::PoseStamped>("/Camera_Pose_test",1);
     Camodom_Pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("/Camera_Odom", 1);
-    odom_pub = nh.advertise<nav_msgs::Odometry>("/odom", 50);
+    odom_pub = nh.advertise<nav_msgs::Odometry>("/odom_test", 50);
 
     current_time = ros::Time::now();
     last_time = ros::Time::now();
     int ni=1;
-    vector<double> vTimestamps;
+    
     while(ros::ok() && ni<nImages)
     {
         imRGB = cv::imread(string(argv[2])+"/"+to_string(ni)+".jpg",CV_LOAD_IMAGE_UNCHANGED);
         imD = cv::imread(string(argv[2])+"/"+to_string(ni)+"_depth.jpg",CV_LOAD_IMAGE_UNCHANGED);
-        double tframe = vTimestamps[ni];
+
+        //cout << "depth = " << (int)imD.ptr<uchar>(0)[1] << endl;
+        
         if(imRGB.empty())
         {
             cerr << endl << "Failed to load image at: "
@@ -77,26 +79,13 @@ int main(int argc, char **argv)
         }
 
 	    std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
-	    Camera_Pose =  SLAM.TrackRGBD(imRGB,imD,tframe);
+	    Camera_Pose =  SLAM.TrackRGBD(imRGB,imD,ros::Time::now().toSec());
 	    std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 	    double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t1 - t0).count();
         cout << "SLAM TrackRGBD time =" << ttrack*1000 << endl << endl;
 
-	    Pub_CamPose(Camera_Pose); 
-
+	    //Pub_CamPose(Camera_Pose); 
         vTimesTrack[ni]=ttrack;	
-
-        // Wait to load the next frame
-        double T=0;
-        if(ni<nImages-1)
-            T = vTimestamps[ni+1]-tframe;
-        else if(ni>0)
-            T = tframe-vTimestamps[ni-1];
-
-        if(ttrack<T)
-	    {
-            usleep((T-ttrack)*1e6);
-	    }
 	    ni++;
         ros::spinOnce();
 	    loop_rate.sleep();
@@ -155,7 +144,7 @@ void Pub_CamPose(cv::Mat &pose)
 		
 		orb_slam.setOrigin(tf::Vector3(Pose_trans[2], -Pose_trans[0], -Pose_trans[1]));
 		orb_slam.setRotation(tf::Quaternion(Q.z(), -Q.x(), -Q.y(), Q.w()));
-		orb_slam_broadcaster->sendTransform(tf::StampedTransform(orb_slam, ros::Time::now(), "/map", "/base_link"));
+		orb_slam_broadcaster->sendTransform(tf::StampedTransform(orb_slam, ros::Time::now(), "/map", "/base_link_test"));
 		
 		Cam_Pose.header.stamp = ros::Time::now();
 		Cam_Pose.header.frame_id = "/map";
@@ -185,7 +174,7 @@ void Pub_CamPose(cv::Mat &pose)
 		odom.pose.pose.orientation = Cam_odom.pose.pose.orientation;
 
 		// Set the velocity
-		odom.child_frame_id = "/base_link";
+		odom.child_frame_id = "/base_link_test";
 		current_time = ros::Time::now();
 		double dt = (current_time - last_time).toSec();
 		double vx = (Cam_odom.pose.pose.position.x - lastx)/dt;

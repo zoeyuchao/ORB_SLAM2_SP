@@ -4,8 +4,8 @@
 #--------------------------------------------------------------------------------------------
 UseLocalMap: 0
 UseLoop: 0
-UseViewer: 1
-UseBoW: 0
+UseViewer: 0
+UseBoW: 1
 UseORB: 0
 UseExistFile: 0
 OnlyTracking: 0

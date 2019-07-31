@@ -39,7 +39,7 @@ const int ORBmatcher::TH_LOW = 50;//// 欧式变换 描述子匹配 阈值
 const int ORBmatcher::HISTO_LENGTH = 30;// 匹配点对 观察方向差 的 直方图 格子数量
 //================================//
 //zoe 20181017
-const float ORBmatcher::FLOAT_MAX=5.0;
+const float ORBmatcher::FLOAT_MAX=4.0;
 const float ORBmatcher::TH_HIGH_LFNET = FLOAT_MAX/2;//zoe mark
 const float ORBmatcher::TH_LOW_LFNET = FLOAT_MAX/5;//zoe mark
 //==================================//
@@ -3641,7 +3641,7 @@ float ORBmatcher::DescriptorDistanceLFNet_float(const std::vector<float> &a, con
         dist += (a[i+2] - b[i+2])*(a[i+2] - b[i+2]);
         dist += (a[i+3] - b[i+3])*(a[i+3] - b[i+3]);
     }
-    
+    //cout << dist << endl;
     //dist = sqrt(dist);
     if(dist>4)
     {
