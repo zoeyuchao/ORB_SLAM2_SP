@@ -28,6 +28,8 @@
   `cd ORB_SLAM2_SP`
 
   `./build.sh`
+  
+  （FPGA版本遇到multidefination需要手动把cmakefiles里面的build.cmake和link.txt里面重复的删掉）
 
 ## 2. 使用
 

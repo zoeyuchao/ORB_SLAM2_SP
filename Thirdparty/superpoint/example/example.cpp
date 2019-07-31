@@ -1,4 +1,3 @@
-#include <caffe/caffe.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -11,7 +10,7 @@
 #include <iostream>
 #include <SuperPoint.hpp>
 
-using namespace caffe;  // NOLINT(build/namespaces)
+// using namespace caffe;  // NOLINT(build/namespaces)
 using std::string;
 using namespace std;
 

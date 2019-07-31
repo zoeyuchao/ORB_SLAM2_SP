@@ -7,8 +7,8 @@ ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall -O3 -march=native -mcpu=cortex-a53 ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -O3 -march=native -mcpu=cortex-a53")
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -39,8 +39,6 @@ endif()
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(PCL 1.7 REQUIRED)
-#set(Torch_DIR /home/tsui/yujc/testcpptorch/libtorch/share/cmake/Torch)
-#find_package(Torch REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS 
   roscpp
@@ -57,10 +55,6 @@ ${Pangolin_INCLUDE_DIRS}
 ${catkin_INCLUDE_DIRS}
 ${PCL_INCLUDE_DIRS}
 ${PROJECT_SOURCE_DIR}/Thirdparty/superpoint/include/
-/home/yuchao/caffe-ssd/include/ 
-/usr/local/include 
-/usr/local/cuda/include
-#${TORCH_INCLUDE_DIRS}
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -87,22 +81,3 @@ src/Initializer.cc
 src/Viewer.cc
 src/PointCloud.cc
 )
-
-target_link_libraries(${PROJECT_NAME}
-${OpenCV_LIBS}
-${EIGEN3_LIBS}
-${Pangolin_LIBRARIES}
-${PCL_LIBRARIES}
-${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
-${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
-${PROJECT_SOURCE_DIR}/Thirdparty/superpoint/lib/libsuperpoint.so
-/home/yuchao/caffe-ssd/build/lib/libcaffe.so
-/usr/lib/x86_64-linux-gnu/libglog.so
-/usr/lib/x86_64-linux-gnu/libboost_system.so
-${catkin_LIBRARIES}
-#${TORCH_LIBRARIES}
-)
-
-# Build examples
-
-

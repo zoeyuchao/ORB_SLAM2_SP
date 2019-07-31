@@ -1,8 +1,6 @@
 #ifndef _SUPERPOINT_H_
 #define _SUPERPOINT_H_
 
-#include <caffe/caffe.hpp>
-
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -16,28 +14,73 @@
 #include <vector>
 #include <sstream>
 
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <iostream>
+#include <unistd.h>
+
+/* header file for DNNDK APIs */
+#include <dnndk/dnndk.h>
+
+#undef readl
+#define readl(addr) \
+    ({ unsigned int __v = (*(volatile unsigned int *) (addr)); __v; })
+
+#undef writel
+#define writel(addr,b) (void)((*(volatile unsigned int *) (addr)) = (b))
+
+#define REG_BASE_ADDRESS     0x80000000
+#define DDR1_BASE_ADDRESS     0x60000000
+#define DDR2_BASE_ADDRESS     0x70000000
+#define INST_BASE_ADDRESS     0x6D000000
+
+#define INPUT_NODE "ConvNdBackward1"
+#define OUTPUT_NODE_semi "ConvNdBackward22"
+#define OUTPUT_NODE_desc "ConvNdBackward25"
+
 class point
 {
     public:
         int W;   
         int H;  
+        int num;
         float semi;   
         point(int a, int b, float c) {H=a;W=b;semi=c;}
         point() {}
+};
+
+//xzl 190729
+class SuperPointTask
+{
+    public:
+        DPUKernel *kernel;
+        DPUTask *task;
+        
+        int memfd;
+        void *mapped_reg_base;
+        void *mapped_ddr1_base;
+        void *mapped_ddr2_base;
+        void *mapped_inst_base;
+        void *mapped_softmax_reg_base;
+        void *mapped_normalize_reg_base;
+        
+        SuperPointTask(){};
+        
 };
 
 class SuperPoint
 {
   public:
     SuperPoint(const std::string& model_file, const std::string& trained_file, int keep_k_points);
+    ~SuperPoint();
     int ExactSP(const cv::Mat& image, std::vector<cv::KeyPoint>& kpts, std::vector<std::vector<float> >& dspts);
 
   private:
-    caffe::shared_ptr<caffe::Net<float> > net_;
+    // caffe::shared_ptr<caffe::Net<float> > net_;
     cv::Size input_geometry_;
     int num_channels_;  
-    int height_;
-    int width_; 
+    int Height = 480;
+    int Width = 640; 
 
     int Cell = 8;
     int D = 256;
@@ -46,10 +89,21 @@ class SuperPoint
     int KEEP_K_POINTS = 200;
     int HALF_PATCH_SIZE_SP = 15;
 
-    void WrapInputLayer(std::vector<cv::Mat>* input_channels);
+    //void WrapInputLayer(std::vector<cv::Mat>* input_channels);
     void Preprocess(const cv::Mat& img, std::vector<cv::Mat>* input_channels);
     float SP_Angle(const cv::Mat& image, cv::KeyPoint& kpt, const std::vector<int>& u_max);
-    void TopK(std::vector<point>& input_arr, int32_t n, int32_t k);
+    void Top_K(std::vector<point>& input_arr, int32_t n, int32_t k);
+    void Bottom_K(std::vector<point>& input_arr, int32_t n, int32_t k);
+    
+    SuperPointTask SPtask;
+    void *memory_map(unsigned int map_size, off_t base_addr, int memfd); //map_size = n MByte
+    void device_setup();
+    void device_close();
+    void run_DPU(cv::Mat img, int8_t* &result_semi_int, int8_t* &result_desc_int, int &num_semi, int &num_desc);
+    void run_Softmax_fpga(int8_t* result_semi_int, int num_semi, point* coarse_semi[]);
+    void run_NMS(point* coarse_semi[], std::vector<point> &tmp_point, int threshold);
+    void run_Normalize_fpga(int8_t* result_desc_int, int num_desc, std::vector<point> tmp_point, std::vector<std::vector<float> >& desc);
+    
 };
 
 
